@@ -8,52 +8,67 @@
 <main class="admin-layout">
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <section class="admin-content">
+
         <div class="admin-heading">
             <div>
-                <p class="eyebrow">Tài chính</p>
-                <h1>Doanh thu, tiền cọc và thanh toán</h1>
+                <p class="eyebrow">Báo cáo tài chính</p>
+                <h1>Doanh thu, tiền cọc &amp; thanh toán</h1>
+                <p>Thống kê toàn bộ giao dịch tài chính trong hệ thống cho thuê.</p>
             </div>
         </div>
-        <section class="metric-grid">
+
+        <!-- KPI -->
+        <section class="metric-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));">
             <article class="metric-card">
                 <span>Đã thu</span>
-                <strong data-finance-paid>0 d</strong>
-                <small>Tổng các khoản thanh toán</small>
+                <strong data-finance-paid>—</strong>
+                <small><i data-lucide="check-circle" style="width:12px;height:12px;margin-right:4px;"></i>Tổng các khoản thanh toán</small>
             </article>
             <article class="metric-card">
                 <span>Còn lại</span>
-                <strong data-finance-remain>0 d</strong>
-                <small>Số tiền chưa tất toán</small>
+                <strong data-finance-remain>—</strong>
+                <small><i data-lucide="clock" style="width:12px;height:12px;margin-right:4px;"></i>Số tiền chưa tất toán</small>
             </article>
             <article class="metric-card">
                 <span>Giá trị đơn</span>
-                <strong data-finance-total>0 d</strong>
-                <small>Tổng booking ghi nhận</small>
+                <strong data-finance-total>—</strong>
+                <small><i data-lucide="file-text" style="width:12px;height:12px;margin-right:4px;"></i>Tổng booking ghi nhận</small>
             </article>
             <article class="metric-card">
                 <span>Đơn có thanh toán</span>
-                <strong data-finance-count>0</strong>
-                <small>Phát sinh tiền cọc hoặc thu thêm</small>
+                <strong data-finance-count>—</strong>
+                <small><i data-lucide="receipt" style="width:12px;height:12px;margin-right:4px;"></i>Phát sinh tiền cọc hoặc thu thêm</small>
             </article>
         </section>
-        <section class="surface table-wrap">
+
+        <!-- Table -->
+        <section class="surface table-wrap" style="padding:0;overflow:hidden;">
             <table class="data-table">
                 <thead>
-                <tr>
-                    <th>Đơn</th>
-                    <th>Khách hàng</th>
-                    <th>Thanh toán</th>
-                    <th>Còn lại</th>
-                    <th>Trạng thái</th>
-                </tr>
+                    <tr>
+                        <th>Đơn thuê</th>
+                        <th>Khách hàng</th>
+                        <th>Đã thanh toán</th>
+                        <th>Còn lại</th>
+                        <th>Trạng thái</th>
+                    </tr>
                 </thead>
                 <tbody data-finance-table></tbody>
             </table>
+            <div class="pg-bar" id="pgFinance"></div>
         </section>
+
+        <!-- Revenue breakdown -->
         <section class="surface">
-            <h2>Thống kê theo thời gian</h2>
+            <div class="section-heading tight">
+                <div>
+                    <p class="eyebrow">Phân tích</p>
+                    <h2>Doanh thu theo thời gian</h2>
+                </div>
+            </div>
             <div class="info-grid" data-revenue-breakdown></div>
         </section>
+
     </section>
 </main>
 

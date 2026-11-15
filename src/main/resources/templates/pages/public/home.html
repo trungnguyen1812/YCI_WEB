@@ -6,101 +6,286 @@
 <section th:replace="~{fragments/layout :: flash}"></section>
 
 <main>
-    <section class="hero home-hero">
-        <img class="hero-image" th:src="@{/images/yci-hero.png}" alt="Quầy thuê thiết bị nhiếp ảnh YCI">
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
-            <p class="eyebrow">YCI Camera Rental</p>
-            <h1>Thuê thiết bị nhiếp ảnh rõ ràng từ lịch đặt đến hoàn trả.</h1>
-            <p>Tìm máy ảnh, ống kính, đèn flash và phụ kiện theo lịch chụp; theo dõi cọc, thanh toán và trạng thái đơn trong một quy trình gọn gàng.</p>
-            <form class="hero-search" action="/products" method="get">
-                <i data-lucide="search"></i>
-                <input name="q" type="search" placeholder="Tìm Sony A7, Canon, lens 85mm...">
-                <button class="button primary" type="submit">Tìm thiết bị</button>
-            </form>
-            <div class="hero-stats">
-                <span><strong data-stat-products>0</strong> thiết bị</span>
-                <span><strong data-stat-categories>0</strong> danh mục</span>
-                <span><strong data-stat-available>0</strong> sẵn sàng</span>
+
+    <!-- ══════════════════════════════════════════════════════
+         CINEMATIC GALLERY BAND
+    ══════════════════════════════════════════════════════ -->
+    <section class="gallery-band">
+        <!-- Lớp grain/fabric chuyển động -->
+        <div class="gallery-grain" aria-hidden="true"></div>
+        <!-- Lớp gradient overlay -->
+        <div class="gallery-overlay" aria-hidden="true"></div>
+
+        <!-- Track trượt -->
+        <div class="gallery-track" id="galleryTrack">
+            <div class="gallery-slide is-active">
+                <div class="gallery-slide-bg" style="background-image:url('/images/anh-may-co-kts-thumb-chinh-1.jpeg')"></div>
+                <div class="gallery-slide-content">
+                    <span class="gallery-slide-tag"><i data-lucide="aperture"></i> YCI Camera Rental</span>
+                    <h3>Từng khung hình đều<br>kể một câu chuyện</h3>
+                    <p>Thuê máy ảnh, ống kính, đèn flash từ YCI — thiết bị được kiểm tra kỹ, lịch trống rõ ràng, quy trình gọn gàng.</p>
+                    <div class="gallery-slide-actions">
+                        <a class="button primary" href="/products"><i data-lucide="camera"></i> Xem thiết bị</a>
+                        <a class="button hero-ghost" href="/booking">Đặt lịch ngay <i data-lucide="arrow-right"></i></a>
+                    </div>
+                    <div class="gallery-slide-stats">
+                        <div class="gallery-stat"><strong data-stat-products>8+</strong><span>Thiết bị</span></div>
+                        <div class="gallery-stat-sep"></div>
+                        <div class="gallery-stat"><strong data-stat-categories>2</strong><span>Danh mục</span></div>
+                        <div class="gallery-stat-sep"></div>
+                        <div class="gallery-stat"><strong data-stat-available>8</strong><span>Sẵn sàng</span></div>
+                    </div>
+                </div>
             </div>
+            <div class="gallery-slide">
+                <div class="gallery-slide-bg" style="background-image:url('/images/cung-cap-cac-thiet-bi-quay-phim-chup-anh-chuyen-nghiep-02.png')"></div>
+                <div class="gallery-slide-content">
+                    <span class="gallery-slide-tag"><i data-lucide="camera"></i> Canon · Sony · Nikon</span>
+                    <h3>Ánh sáng đúng lúc,<br>khoảnh khắc đúng thời điểm</h3>
+                    <p>Mỗi chiếc máy tại YCI đã qua tay những tay máy thực thụ — và giờ đây, lịch chụp tiếp theo là của bạn.</p>
+                    <div class="gallery-slide-actions">
+                        <a class="button primary" href="/products"><i data-lucide="camera"></i> Xem thiết bị</a>
+                        <a class="button hero-ghost" href="/pricing">Bảng giá <i data-lucide="arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="gallery-slide">
+                <div class="gallery-slide-bg" style="background-image:url('/images/photo-1502920917128-1aa500764cbd.jpg')"></div>
+                <div class="gallery-slide-content">
+                    <span class="gallery-slide-tag"><i data-lucide="image"></i> Ống kính cao cấp</span>
+                    <h3>Thiết bị chuyên nghiệp,<br>giá thuê hợp lý</h3>
+                    <p>Không cần đầu tư hàng chục triệu — chỉ cần chọn ngày, chọn máy, và bắt đầu sáng tạo cùng YCI Camera.</p>
+                    <div class="gallery-slide-actions">
+                        <a class="button primary" href="/booking"><i data-lucide="calendar-plus"></i> Đặt lịch thuê</a>
+                        <a class="button hero-ghost" href="/pricing">Bảng giá <i data-lucide="arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="gallery-slide">
+                <div class="gallery-slide-bg" style="background-image:url('/images/photo-1495121553079-4c61bcce1894.jpg')"></div>
+                <div class="gallery-slide-content">
+                    <span class="gallery-slide-tag"><i data-lucide="sparkles"></i> Fullframe · Mirrorless</span>
+                    <h3>Chất lượng fullframe,<br>trải nghiệm thật sự</h3>
+                    <p>Bộ sưu tập máy ảnh fullframe và ống kính cao cấp — tất cả đã được kiểm tra kỹ trước khi đến tay bạn.</p>
+                    <div class="gallery-slide-actions">
+                        <a class="button primary" href="/products"><i data-lucide="camera"></i> Khám phá ngay</a>
+                        <a class="button hero-ghost" href="/regulations">Quy định thuê <i data-lucide="arrow-right"></i></a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dots điều hướng -->
+        <div class="gallery-dots" id="galleryDots">
+            <button class="gallery-dot is-active" data-idx="0" aria-label="Ảnh 1"></button>
+            <button class="gallery-dot" data-idx="1" aria-label="Ảnh 2"></button>
+            <button class="gallery-dot" data-idx="2" aria-label="Ảnh 3"></button>
+            <button class="gallery-dot" data-idx="3" aria-label="Ảnh 4"></button>
+        </div>
+
+        <!-- Nút prev/next -->
+        <button class="gallery-nav gallery-nav--prev" id="galleryPrev" aria-label="Ảnh trước">
+            <i data-lucide="chevron-left"></i>
+        </button>
+        <button class="gallery-nav gallery-nav--next" id="galleryNext" aria-label="Ảnh sau">
+            <i data-lucide="chevron-right"></i>
+        </button>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         TRUST BAR
+    ══════════════════════════════════════════════════════ -->
+    <div class="trust-bar">
+        <div class="container trust-bar-inner">
+            <span class="trust-bar-label">Cam kết với khách hàng</span>
+            <div class="trust-items">
+                <div class="trust-item"><i data-lucide="badge-check"></i><span>Thiết bị chính hãng</span></div>
+                <div class="trust-item"><i data-lucide="receipt-text"></i><span>Chi phí minh bạch</span></div>
+                <div class="trust-item"><i data-lucide="clock"></i><span>Đúng giờ hẹn</span></div>
+                <div class="trust-item"><i data-lucide="headphones"></i><span>Hỗ trợ tận tình</span></div>
+                <div class="trust-item"><i data-lucide="shield"></i><span>Bảo mật thông tin</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════
+         DANH MỤC
+    ══════════════════════════════════════════════════════ -->
+    <section class="home-section">
+        <div class="container">
+            <div class="home-section-head" data-anim="fade-up">
+                <div>
+                    <p class="eyebrow">Danh mục</p>
+                    <h2>Chọn nhanh theo nhu cầu</h2>
+                </div>
+                <a class="link-arrow" th:href="@{/products}">Xem tất cả <i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="category-strip" data-category-strip></div>
         </div>
     </section>
 
-    <section class="section about-store">
-        <div class="about-copy">
-            <p class="eyebrow">Giới thiệu cửa hàng</p>
-            <h2>YCI chuẩn bị thiết bị theo lịch chụp thật, không chỉ là một danh sách sản phẩm.</h2>
-            <p>Website hỗ trợ khách xem kho máy ảnh, ống kính, đèn flash và phụ kiện; đặt thuê nhiều thiết bị trong một đơn; theo dõi giấy tờ, tiền cọc, thanh toán và trạng thái xử lý sau khi gửi yêu cầu.</p>
-            <div class="store-facts">
-                <span><i data-lucide="badge-check"></i> Kiểm tra ngoại hình và serial trước khi giao</span>
-                <span><i data-lucide="receipt-text"></i> Cọc, thanh toán và phí phát sinh được ghi nhận theo đơn</span>
-                <span><i data-lucide="history"></i> Lịch sử thuê gắn với tài khoản khách hàng</span>
+    <!-- ══════════════════════════════════════════════════════
+         THIẾT BỊ NỔI BẬT
+    ══════════════════════════════════════════════════════ -->
+    <section class="home-section home-section--tinted">
+        <div class="container">
+            <div class="home-section-head" data-anim="fade-up">
+                <div>
+                    <p class="eyebrow">Thiết bị nổi bật</p>
+                    <h2>Sẵn sàng cho lịch chụp của bạn</h2>
+                </div>
+                <a class="link-arrow" th:href="@{/pricing}">Bảng giá <i data-lucide="arrow-right"></i></a>
             </div>
-        </div>
-        <div class="about-ops">
-            <article>
-                <strong>08:00 - 21:00</strong>
-                <span>Nhận và trả thiết bị tại Studio YCI</span>
-            </article>
-            <article>
-                <strong>Nhiều thiết bị</strong>
-                <span>Ghép máy, lens, flash và phụ kiện trong cùng một đơn thuê</span>
-            </article>
-            <article>
-                <strong>Minh bạch</strong>
-                <span>Hiển thị giá thuê, cọc tham chiếu và trạng thái xử lý</span>
-            </article>
+            <div class="product-grid" data-featured-products></div>
         </div>
     </section>
 
-    <section class="section">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Danh mục</p>
-                <h2>Chọn nhanh theo nhu cầu chụp</h2>
-            </div>
-            <a class="button ghost" th:href="@{/products}">Xem tất cả</a>
-        </div>
-        <div class="category-strip" data-category-strip></div>
-    </section>
-
-    <section class="section tinted">
-        <div class="section-heading">
-            <div>
-                <p class="eyebrow">Thiết bị nổi bật</p>
-                <h2>Giá thuê và tình trạng cập nhật từ hệ thống</h2>
-            </div>
-            <a class="button ghost" th:href="@{/pricing}">Bảng giá</a>
-        </div>
-        <div class="product-grid" data-featured-products></div>
-    </section>
-
+    <!-- ══════════════════════════════════════════════════════
+         QUY TRÌNH
+    ══════════════════════════════════════════════════════ -->
     <section class="workflow-band">
-        <div>
-            <p class="eyebrow">Quy trình</p>
-            <h2>Từ đặt lịch đến trả máy được tách rõ từng bước</h2>
-        </div>
-        <div class="workflow-list">
-            <article>
-                <i data-lucide="calendar-check"></i>
-                <h3>Đặt lịch</h3>
-                <p>Chọn nhiều thiết bị, thời gian thuê và loại giá phù hợp.</p>
-            </article>
-            <article>
-                <i data-lucide="badge-check"></i>
-                <h3>Xác nhận</h3>
-                <p>Nhân viên kiểm tra lịch, giấy tờ và lập hợp đồng thuê.</p>
-            </article>
-            <article>
-                <i data-lucide="rotate-ccw"></i>
-                <h3>Hoàn trả</h3>
-                <p>Ghi nhận tình trạng, phí phát sinh và thanh toán còn lại.</p>
-            </article>
+        <div class="container workflow-inner">
+            <div class="workflow-lead" data-anim="fade-up">
+                <p class="eyebrow" style="color:#ff7ec4;">Quy trình</p>
+                <h2>Từ đặt lịch<br>đến trả máy</h2>
+                <p>Mỗi bước được tách rõ, theo dõi trực tuyến và ghi nhận tự động.</p>
+                <a class="button primary" th:href="@{/booking}" style="margin-top:16px;">
+                    Đặt lịch ngay <i data-lucide="arrow-right"></i>
+                </a>
+            </div>
+            <div class="workflow-steps-grid">
+                <div class="workflow-step" data-anim="fade-up" style="--delay:.05s">
+                    <div class="workflow-step-num">01</div>
+                    <div class="workflow-step-icon"><i data-lucide="shopping-bag"></i></div>
+                    <h3>Đặt lịch</h3>
+                    <p>Chọn thiết bị, khung giờ và loại giá. Timeline hiện ngay lịch trống / bận.</p>
+                </div>
+                <div class="workflow-step" data-anim="fade-up" style="--delay:.12s">
+                    <div class="workflow-step-num">02</div>
+                    <div class="workflow-step-icon"><i data-lucide="file-check-2"></i></div>
+                    <h3>Xác nhận</h3>
+                    <p>Nhân viên kiểm tra giấy tờ, áp mức cọc và xác nhận đơn qua hệ thống.</p>
+                </div>
+                <div class="workflow-step" data-anim="fade-up" style="--delay:.19s">
+                    <div class="workflow-step-num">03</div>
+                    <div class="workflow-step-icon"><i data-lucide="camera"></i></div>
+                    <h3>Nhận thiết bị</h3>
+                    <p>Kiểm tra serial và ngoại hình cùng nhân viên trước khi mang đi chụp.</p>
+                </div>
+                <div class="workflow-step" data-anim="fade-up" style="--delay:.26s">
+                    <div class="workflow-step-num">04</div>
+                    <div class="workflow-step-icon"><i data-lucide="receipt-text"></i></div>
+                    <h3>Hoàn trả</h3>
+                    <p>Ghi nhận tình trạng, phí phát sinh và thanh toán phần còn lại.</p>
+                </div>
+            </div>
         </div>
     </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         TẠI SAO CHỌN YCI
+    ══════════════════════════════════════════════════════ -->
+    <section class="home-section home-section--tinted">
+        <div class="container">
+            <div class="home-section-head centered" data-anim="fade-up">
+                <p class="eyebrow">Tại sao chọn YCI</p>
+                <h2>Chuẩn bị thiết bị theo lịch chụp thật,<br>không chỉ là danh sách sản phẩm</h2>
+            </div>
+            <div class="why-grid">
+                <div class="why-card" data-anim="fade-up" style="--delay:.04s">
+                    <div class="why-icon-wrap"><i data-lucide="badge-check"></i></div>
+                    <h3>Kiểm tra nghiêm ngặt</h3>
+                    <p>Mọi thiết bị được kiểm tra ngoại hình và serial trước khi giao cho khách hàng.</p>
+                </div>
+                <div class="why-card" data-anim="fade-up" style="--delay:.1s">
+                    <div class="why-icon-wrap"><i data-lucide="receipt-text"></i></div>
+                    <h3>Minh bạch chi phí</h3>
+                    <p>Cọc, thanh toán và phí phát sinh được ghi nhận rõ ràng theo từng đơn hàng.</p>
+                </div>
+                <div class="why-card" data-anim="fade-up" style="--delay:.16s">
+                    <div class="why-icon-wrap"><i data-lucide="history"></i></div>
+                    <h3>Quản lý dễ dàng</h3>
+                    <p>Lịch sử thuê thiết bị gắn liền với tài khoản, dễ tra cứu bất cứ lúc nào.</p>
+                </div>
+                <div class="why-card" data-anim="fade-up" style="--delay:.22s">
+                    <div class="why-icon-wrap"><i data-lucide="calendar-check"></i></div>
+                    <h3>Timeline trực quan</h3>
+                    <p>Xem ngay lịch trống / bận của từng thiết bị và chọn khung giờ phù hợp.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         CTA BANNER
+    ══════════════════════════════════════════════════════ -->
+    <section class="cta-banner">
+        <div class="container cta-inner" data-anim="fade-up">
+            <div class="cta-copy">
+                <h2>Sẵn sàng cho buổi chụp tiếp theo?</h2>
+                <p>Đặt lịch ngay hôm nay — chọn thiết bị, chọn giờ, nhận máy đúng hẹn.</p>
+            </div>
+            <div class="cta-actions">
+                <a class="button primary" th:href="@{/booking}">
+                    <i data-lucide="calendar-plus"></i> Đặt lịch thuê
+                </a>
+                <a class="button cta-ghost" th:href="@{/products}">
+                    Xem thiết bị <i data-lucide="arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <div th:replace="~{fragments/layout :: scripts}"></div>
+<script>
+/* ── Gallery Band Slideshow ───────────────────────── */
+(function () {
+    const slides  = document.querySelectorAll(".gallery-slide");
+    const dots    = document.querySelectorAll(".gallery-dot");
+    const prevBtn = document.getElementById("galleryPrev");
+    const nextBtn = document.getElementById("galleryNext");
+    if (!slides.length) return;
+
+    // Preload tất cả ảnh background
+    slides.forEach(slide => {
+        const bg = slide.querySelector(".gallery-slide-bg");
+        if (!bg) return;
+        const url = bg.style.backgroundImage.replace(/url\(["']?|["']?\)/g, "");
+        if (url) {
+            const img = new Image();
+            img.onerror = () => { bg.style.backgroundImage = "url('/images/yci-hero.png')"; };
+            img.src = url;
+        }
+    });
+
+    let current = 0;
+    let timer   = null;
+
+    function goTo(idx) {
+        slides[current].classList.remove("is-active");
+        dots[current]?.classList.remove("is-active");
+        current = (idx + slides.length) % slides.length;
+        slides[current].classList.add("is-active");
+        dots[current]?.classList.add("is-active");
+        clearTimeout(timer);
+        timer = setTimeout(() => goTo(current + 1), 5200);
+    }
+
+    dots.forEach(dot => dot.addEventListener("click", () => goTo(Number(dot.dataset.idx))));
+    prevBtn?.addEventListener("click", () => goTo(current - 1));
+    nextBtn?.addEventListener("click", () => goTo(current + 1));
+
+    // Khởi động auto-play
+    timer = setTimeout(() => goTo(1), 5200);
+
+    // Pause khi hover
+    const band = document.querySelector(".gallery-band");
+    band?.addEventListener("mouseenter", () => clearTimeout(timer));
+    band?.addEventListener("mouseleave", () => { timer = setTimeout(() => goTo(current + 1), 2000); });
+})();
+</script>
 </body>
 </html>

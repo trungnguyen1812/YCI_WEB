@@ -215,17 +215,30 @@
     }
 
     function statusClass(status) {
-        const normalized = String(status || "").toUpperCase();
-        if (normalized.includes("AVAILABLE") || normalized.includes("ACCEPTED") || normalized.includes("SUCCESS")) {
-            return "good";
-        }
-        if (normalized.includes("WAIT") || normalized.includes("PENDING") || normalized.includes("NOT YET")) {
-            return "warn";
-        }
-        if (normalized.includes("RENTED") || normalized.includes("CANCEL") || normalized.includes("MAINTENANCE") || normalized.includes("UNAVAILABLE")) {
-            return "bad";
-        }
-        return "";
+        const normalized = String(status || "").toUpperCase().replace(/ /g, "_");
+        const map = {
+            // Thiết bị
+            "AVAILABLE":          "sc-available",
+            "RENTED":             "sc-renting",
+            "RENTING":            "sc-renting",
+            "MAINTENANCE":        "sc-maintenance",
+            "UNAVAILABLE":        "sc-unavailable",
+            // Đơn thuê
+            "WAITING_ACCEPT":     "sc-waiting",
+            "WAITING ACCEPT":     "sc-waiting",
+            "ACCEPTED":           "sc-accepted",
+            "RECEIVED":           "sc-received",
+            "NOT_YET_RECEIVED":   "sc-notyetrec",
+            "NOT YET RECEIVED":   "sc-notyetrec",
+            "RETURNED":           "sc-returned",
+            "COMPLETED":          "sc-completed",
+            "CANCELLED":          "sc-cancelled",
+            "PENDING_DEPOSIT":    "sc-waiting",
+            "CANCEL_REQUESTED":   "sc-waiting",
+            "REFUND_PENDING":     "sc-notyetrec",
+            "REFUNDED":           "sc-completed",
+        };
+        return map[normalized] || "sc-default";
     }
 
     function statusLabel(status) {
@@ -243,7 +256,11 @@
             "COMPLETED": "Hoàn tất",
             "RETURNED": "Đã trả",
             "NOT YET RECEIVED": "Chưa nhận",
-            "RECEIVED": "Đã nhận"
+            "RECEIVED": "Đã nhận",
+            "PENDING_DEPOSIT": "Chờ thanh toán cọc",
+            "CANCEL_REQUESTED": "Đang yêu cầu hủy",
+            "REFUND_PENDING": "Chờ hoàn tiền",
+            "REFUNDED": "Đã hoàn tiền"
         };
         return labels[normalized] || status || "Chưa rõ";
     }
@@ -339,7 +356,6 @@
             cartIds = [];
             updateCartCount();
             toast("Vui lòng đăng nhập để tiếp tục đặt thuê.", "error");
-            window.setTimeout(() => window.location.assign("/login"), 600);
             return cartIds;
         }
         const uniqueIds = Array.from(new Set(ids.map((id) => Number(id)).filter(Boolean)));
@@ -357,7 +373,6 @@
         }
         if (!userId) {
             toast("Vui lòng đăng nhập để thêm thiết bị vào đơn thuê.", "error");
-            window.setTimeout(() => window.location.assign("/login"), 600);
             return [];
         }
         await ensureCartLoaded();
@@ -483,10 +498,147 @@
         }
     });
 
+    // ── Money input formatter ─────────────────────────────────
+    // Áp dụng cho mọi input có attribute [data-money-input]
+    // - Hiển thị dấu chấm ngăn cách hàng nghìn khi người dùng gõ
+    // - Lưu giá trị thực (raw number) vào dataset.rawValue để JS đọc khi submit
+    // - Tự động bind khi gọi moneyInput(el) hoặc moneyInput() cho toàn trang
+
+    function formatMoneyDisplay(raw) {
+        // raw = số nguyên không có dấu chấm
+        const n = String(raw).replace(/\D/g, "");
+        if (!n) return "";
+        return Number(n).toLocaleString("vi-VN"); // → "1.500.000"
+    }
+
+    function parseMoneyInput(el) {
+        // Đọc raw number từ input đã format
+        const raw = String(el.value || "").replace(/\./g, "").replace(/,/g, "").trim();
+        return raw ? Number(raw) : 0;
+    }
+
+    function bindMoneyInput(el) {
+        if (el._moneyBound) return;
+        el._moneyBound = true;
+        el.setAttribute("autocomplete", "off");
+
+        el.addEventListener("input", () => {
+            const pos    = el.selectionStart;
+            const before = el.value.length;
+            const digits = el.value.replace(/\D/g, "");
+            const fmt    = digits ? Number(digits).toLocaleString("vi-VN") : "";
+            el.value = fmt;
+            // Giữ cursor đúng vị trí sau khi format
+            const diff = fmt.length - before;
+            try { el.setSelectionRange(pos + diff, pos + diff); } catch (_) {}
+        });
+
+        el.addEventListener("blur", () => {
+            const digits = el.value.replace(/\D/g, "");
+            el.value = digits ? Number(digits).toLocaleString("vi-VN") : "";
+        });
+
+        el.addEventListener("focus", () => {
+            // Khi focus: select all để dễ xóa / gõ lại
+            el.select();
+        });
+    }
+
+    function moneyInput(rootOrEl) {
+        // Nếu truyền một element cụ thể → bind element đó
+        // Nếu không truyền hoặc truyền root → bind tất cả [data-money-input] bên trong
+        const root = rootOrEl instanceof Element ? rootOrEl : document;
+        root.querySelectorAll("[data-money-input]").forEach(bindMoneyInput);
+        if (rootOrEl instanceof Element && rootOrEl.matches("[data-money-input]")) {
+            bindMoneyInput(rootOrEl);
+        }
+    }
+
+    // ── Client-side pagination utility ───────────────────────
+    // Dùng chung cho mọi bảng admin
+    // Cách dùng:
+    //   const pg = YCI.paginate(containerEl, pageSize);
+    //   pg.render(rows, totalCount);   // rows = HTML string của trang hiện tại
+    //   pg.slice(allItems)             // trả về items của trang hiện tại
+    //   pg.reset()                     // về trang 1
+    function paginate(container, pageSize = 15) {
+        let current = 1;
+        let total   = 1;
+
+        function build(totalItems) {
+            total = Math.max(1, Math.ceil(totalItems / pageSize));
+            if (current > total) current = total;
+        }
+
+        function slice(arr) {
+            build(arr.length);
+            const start = (current - 1) * pageSize;
+            return arr.slice(start, start + pageSize);
+        }
+
+        function render(totalItems) {
+            build(totalItems);
+            // Render phần controls
+            const from  = Math.min((current - 1) * pageSize + 1, totalItems);
+            const to    = Math.min(current * pageSize, totalItems);
+
+            // Tạo danh sách trang (max 7 nút)
+            function pageNums() {
+                const pages = [];
+                if (total <= 7) {
+                    for (let i = 1; i <= total; i++) pages.push(i);
+                    return pages;
+                }
+                pages.push(1);
+                if (current > 3)  pages.push("…");
+                for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) pages.push(i);
+                if (current < total - 2) pages.push("…");
+                pages.push(total);
+                return pages;
+            }
+
+            const nums = pageNums().map(p =>
+                p === "…"
+                    ? `<span class="pg-ellipsis">…</span>`
+                    : `<button class="pg-btn ${p === current ? "is-active" : ""}" data-pg="${p}">${p}</button>`
+            ).join("");
+
+            container.innerHTML = `
+                <div class="pg-info">Hiển thị ${totalItems ? from + "–" + to : 0} / ${totalItems} mục</div>
+                <div class="pg-controls">
+                    <button class="pg-btn pg-prev" data-pg="${current - 1}" ${current <= 1 ? "disabled" : ""}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                    </button>
+                    ${nums}
+                    <button class="pg-btn pg-next" data-pg="${current + 1}" ${current >= total ? "disabled" : ""}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                </div>
+            `;
+
+            // Bind click
+            container.querySelectorAll("[data-pg]").forEach(btn => {
+                if (btn.disabled) return;
+                btn.addEventListener("click", () => {
+                    const p = Number(btn.dataset.pg);
+                    if (p < 1 || p > total || p === current) return;
+                    current = p;
+                    container.dispatchEvent(new CustomEvent("pg:change", { detail: { page: current } }));
+                });
+            });
+        }
+
+        function reset() { current = 1; }
+        function getPage() { return current; }
+
+        return { slice, render, reset, getPage };
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         loadCart();
         updateCartCount();
         iconRefresh();
+        moneyInput(); // bind tất cả input tiền trên trang
     });
 
     window.YCI = {
@@ -529,6 +681,23 @@
         formObject,
         toast,
         iconRefresh,
-        FALLBACK_IMAGE
+        FALLBACK_IMAGE,
+        moneyInput,
+        parseMoneyInput,
+        paginate
     };
 })();
+
+// ── Password toggle ───────────────────────────────────────
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    // đổi icon eye / eye-off
+    btn.innerHTML = isHidden
+        ? '<i data-lucide="eye-off"></i>'
+        : '<i data-lucide="eye"></i>';
+    // re-render lucide icon mới
+    if (window.lucide) lucide.createIcons();
+}

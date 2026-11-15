@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/yci-theme.css}">
+    <link rel="stylesheet" th:href="@{/css/yci-admin-polish.css}">
+    <link rel="stylesheet" th:href="@{/css/yci-mobile.css}">
     <link rel="icon" th:href="@{/images/logo.png}">
 </head>
 <body>
@@ -20,6 +22,7 @@
         </span>
     </a>
     <nav class="site-nav" aria-label="Điều hướng chính">
+        <a th:href="@{/}" th:classappend = "${pageName == 'home'} ? 'is-active'">Trang chủ</a>
         <a th:href="@{/products}" th:classappend="${pageName == 'catalog' || pageName == 'product-detail'} ? 'is-active' : ''">Thiết bị</a>
         <a th:href="@{/pricing}" th:classappend="${pageName == 'pricing'} ? 'is-active' : ''">Bảng giá</a>
         <a th:href="@{/regulations}" th:classappend="${pageName == 'regulations'} ? 'is-active' : ''">Quy định</a>
@@ -29,10 +32,34 @@
         <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" th:href="@{/admin}" th:classappend="${#strings.startsWith(pageName, 'admin') || #strings.startsWith(pageName, 'staff')} ? 'is-active' : ''">Quản trị</a>
     </nav>
     <div class="header-actions">
+        <!-- Hamburger chỉ hiện trên mobile -->
+        <button class="hamburger-btn" id="hamburgerBtn" aria-label="Mở menu" type="button">
+            <i data-lucide="menu"></i>
+        </button>
         <a th:if="${currentUser == null or currentUser.role == null or currentUser.role != 0}" class="icon-button cart-link" th:href="@{/booking}" aria-label="Giỏ đặt thuê">
             <i data-lucide="shopping-bag"></i>
             <span class="cart-count" data-cart-count>0</span>
         </a>
+        <!-- Bell icon — chỉ hiện khi đã đăng nhập -->
+        <div th:if="${currentUser != null}" class="notif-bell-wrap" id="notifBellWrap">
+            <button class="icon-button notif-bell-btn" type="button" id="notifBellBtn" aria-label="Thông báo">
+                <i data-lucide="bell"></i>
+                <span class="notif-badge" id="notifBadge" hidden>0</span>
+            </button>
+            <!-- Dropdown panel -->
+            <div class="notif-dropdown" id="notifDropdown" hidden>
+                <div class="notif-dropdown-header">
+                    <span>Thông báo</span>
+                    <button class="notif-read-all-btn" type="button" id="notifReadAll">Đánh dấu tất cả đã đọc</button>
+                </div>
+                <div class="notif-list" id="notifList">
+                    <div class="notif-empty">
+                        <i data-lucide="bell-off"></i>
+                        <p>Chưa có thông báo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
         <a th:if="${currentUser == null}" class="button ghost" th:href="@{/login}">Đăng nhập</a>
         <div th:if="${currentUser != null}" class="user-menu">
             <a class="avatar-chip" th:href="@{/profile}">
@@ -68,6 +95,9 @@
     <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" class="admin-link" th:classappend="${pageName == 'admin-settings'} ? 'is-active' : ''" th:href="@{/admin/settings}">
         <i data-lucide="sliders-horizontal"></i><span>Cấu hình</span>
     </a>
+    <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" class="admin-link" th:classappend="${pageName == 'admin-refunds'} ? 'is-active' : ''" th:href="@{/admin/refunds}">
+        <i data-lucide="rotate-ccw"></i><span>Hủy &amp; Hoàn tiền</span>
+    </a>
 </aside>
 
 <section class="flash-stack" th:fragment="flash">
@@ -76,14 +106,40 @@
 </section>
 
 <footer class="site-footer" th:fragment="footer">
-    <div>
-        <strong>YCI Camera Rental</strong>
-        <p>Máy ảnh, ống kính, đèn flash và phụ kiện sẵn sàng cho lịch quay chụp của bạn.</p>
+    <div class="container footer-inner">
+        <div class="footer-brand">
+            <div class="footer-brand-top">
+                <img class="footer-logo" th:src="@{/images/logo.png}" alt="YCI" onerror="this.style.display='none'">
+                <div>
+                    <strong class="footer-brand-name">YCI Camera Rental</strong>
+                    <p>Máy ảnh, ống kính, đèn flash và phụ kiện<br>sẵn sàng cho lịch quay chụp của bạn.</p>
+                </div>
+            </div>
+            <div class="footer-contacts">
+                <span><i data-lucide="map-pin"></i> Studio YCI</span>
+                <span><i data-lucide="phone"></i> 0900 000 000</span>
+                <span><i data-lucide="clock-3"></i> 08:00 – 21:00</span>
+            </div>
+        </div>
+
+        <div class="footer-links-group">
+            <h4>Dịch vụ</h4>
+            <a th:href="@{/products}">Thiết bị</a>
+            <a th:href="@{/pricing}">Bảng giá</a>
+            <a th:href="@{/booking}">Đặt thuê</a>
+        </div>
+
+        <div class="footer-links-group">
+            <h4>Hỗ trợ</h4>
+            <a th:href="@{/regulations}">Quy định thuê</a>
+            <a th:href="@{/orders}">Đơn của tôi</a>
+            <a th:href="@{/profile}">Tài khoản</a>
+        </div>
     </div>
-    <div class="footer-grid">
-        <span><i data-lucide="map-pin"></i> Studio YCI</span>
-        <span><i data-lucide="phone"></i> 0900 000 000</span>
-        <span><i data-lucide="clock-3"></i> 08:00 - 21:00</span>
+    <div class="footer-bottom">
+        <div class="container">
+            <span>© 2025 YCI Camera Rental. Mọi quyền được bảo lưu.</span>
+        </div>
     </div>
 </footer>
 
@@ -93,10 +149,49 @@
             user: /*[[${currentUser}]]*/ null
         };
     </script>
+    <script>
+        // ── Hamburger nav toggle ──────────────────────────────
+        (function () {
+            const btn = document.getElementById("hamburgerBtn");
+            const nav = document.querySelector(".site-nav");
+            if (!btn || !nav) return;
+            btn.addEventListener("click", () => {
+                nav.classList.toggle("is-open");
+                document.body.style.overflow = nav.classList.contains("is-open") ? "hidden" : "";
+            });
+            nav.addEventListener("click", (e) => {
+                if (e.target.tagName === "A") {
+                    nav.classList.remove("is-open");
+                    document.body.style.overflow = "";
+                }
+                if (e.target === nav) {
+                    nav.classList.remove("is-open");
+                    document.body.style.overflow = "";
+                }
+            });
+        })();
+
+        // ── Scroll-reveal animation ───────────────────────────
+        (function () {
+            const els = document.querySelectorAll("[data-anim]");
+            if (!els.length) return;
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add("is-visible"); io.unobserve(e.target); } });
+            }, { threshold: 0.12 });
+            els.forEach(el => io.observe(el));
+        })();
+    </script>
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <!-- QR: tạo mã cho khách (qrcodejs) + quét mã cho nhân viên (html5-qrcode) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <script th:src="@{/js/yci-core.js}"></script>
     <script th:src="@{/js/yci-public.js}"></script>
     <script th:src="@{/js/yci-admin.js}"></script>
+    <script th:src="@{/js/yci-dashboard-charts.js}"></script>
+    <script th:src="@{/js/yci-notifications.js}"></script>
+    <script th:src="@{/js/yci-admin-refunds.js}"></script>
 </div>
 </body>
 </html>

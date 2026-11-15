@@ -5,41 +5,112 @@
 <header th:replace="~{fragments/layout :: siteHeader}"></header>
 <section th:replace="~{fragments/layout :: flash}"></section>
 
-<main class="auth-shell">
-    <section class="auth-panel wide">
-        <div>
-            <p class="eyebrow">Khách hàng mới</p>
-            <h1>Tạo tài khoản thuê thiết bị</h1>
+<main class="auth-split-bg">
+    <div class="auth-split-card">
+
+        <!-- LEFT: branding -->
+        <div class="auth-split-left">
+            <div class="brand-icon">
+                <img th:src="@{/images/logo.png}" alt="YCI">
+            </div>
+            <div class="brand-copy">
+                <h2>Cộng đồng<br>Thuê Máy Ảnh<br>Lớn nhất VN</h2>
+                <p>Tìm thấy hàng ngàn góc máy, ống kính chất lượng chuẩn công nghệ cao chỉ trong vài giây.</p>
+            </div>
+            <div class="brand-social">
+                <div class="avatar-stack">
+                    <span>N</span>
+                    <span>T</span>
+                    <span>H</span>
+                    <span class="more">+8k</span>
+                </div>
+                <p>Đã tham gia &amp; giao dịch tin cậy mỗi ngày.</p>
+            </div>
         </div>
-        <form class="form-grid two" th:action="@{/register}" method="post" th:object="${registerRequest}">
-            <label>
-                <span>Họ tên</span>
-                <input th:field="*{fullName}" autocomplete="name" required>
-            </label>
-            <label>
-                <span>Số điện thoại</span>
-                <input th:field="*{phone}" autocomplete="tel" required>
-            </label>
-            <label>
-                <span>Email</span>
-                <input th:field="*{email}" type="email" autocomplete="email" required>
-            </label>
-            <label>
-                <span>Mật khẩu</span>
-                <input th:field="*{password}" type="password" autocomplete="new-password" required>
-            </label>
-            <label>
-                <span>CCCD</span>
-                <input th:field="*{cccd}" required>
-            </label>
-            <label>
-                <span>Địa chỉ</span>
-                <input th:field="*{address}" autocomplete="street-address" required>
-            </label>
-            <button class="button primary full span-2" type="submit">Tạo tài khoản</button>
-        </form>
-        <p class="muted center">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a></p>
-    </section>
+
+        <!-- RIGHT: form -->
+        <div class="auth-split-right">
+            <div class="auth-tabs">
+                <button class="auth-tab-btn" onclick="window.location.href='/login'">Đăng Nhập</button>
+                <button class="auth-tab-btn active">Đăng Ký</button>
+            </div>
+
+            <!-- Register form -->
+            <div class="auth-tab-panel active" id="tab-register">
+                <form th:action="@{/register}" method="post" th:object="${registerRequest}" style="display:contents">
+                    <div class="form-row-2">
+                        <label>
+                            <span>Họ và Tên <span class="required-mark">*</span></span>
+                            <input th:field="*{fullName}"
+                                   autocomplete="name"
+                                   placeholder="Vd: Nguyễn Văn A"
+                                   required
+                                   oninvalid="this.setCustomValidity('Vui lòng nhập họ và tên!')"
+                                   oninput="this.setCustomValidity('')">
+                        </label>
+                        <label>
+                            <span>Số điện thoại <span class="required-mark">*</span></span>
+                            <input th:field="*{phone}"
+                                   type="text"
+                                   autocomplete="tel"
+                                   inputmode="numeric"
+                                   pattern="[0-9]{10}"
+                                   minlength="10"
+                                   maxlength="10"
+                                   placeholder="0123456789"
+                                   required
+                                   oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'Vui lòng nhập số điện thoại!' : 'Số điện thoại phải gồm đúng 10 chữ số!')"
+                                   oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10); this.setCustomValidity('')"
+                                   onkeydown="if (event.ctrlKey || event.metaKey || ['Backspace','Delete','ArrowLeft','ArrowRight','Home','End','Tab'].includes(event.key)) return true; return /^[0-9]$/.test(event.key)">
+                        </label>
+                    </div>
+                    <label>
+                        <span>Địa chỉ Email <span class="required-mark">*</span></span>
+                        <input th:field="*{email}"
+                               type="email"
+                               placeholder="bạn@email.com"
+                               autocomplete="email"
+                               required
+                               oninvalid="this.setCustomValidity('Vui lòng nhập email đúng định dạng!')"
+                               oninput="this.setCustomValidity('')">
+                    </label>
+                    <label>
+                        <span>Mật khẩu <span class="required-mark">*</span></span>
+                        <div class="input-password-wrap">
+                            <input th:field="*{password}"
+                                   id="reg-password"
+                                   type="password"
+                                   autocomplete="new-password"
+                                   placeholder="Mật khẩu trên 8 ký tự"
+                                   minlength="8"
+                                   maxlength="64"
+                                   required
+                                   oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'Vui lòng nhập mật khẩu!' : 'Mật khẩu phải có ít nhất 8 ký tự!')"
+                                   oninput="this.setCustomValidity('')">
+                            <button type="button" class="toggle-password" aria-label="Hiện/ẩn mật khẩu"
+                                    onclick="togglePassword('reg-password', this)">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                    </label>
+                    <label>
+                        <span>Địa chỉ</span>
+                        <input th:field="*{address}"
+                               autocomplete="street-address"
+                               placeholder="Số nhà, đường, quận, thành phố">
+                    </label>
+                    <button class="button primary full auth-split-submit" type="submit">Tạo Tài Khoản</button>
+                </form>
+                <p class="auth-split-note">
+                    Bằng cách đăng ký, bạn đồng ý với <a th:href="@{/regulations}">Điều khoản</a> của chúng tôi.
+                </p>
+                <p class="auth-split-note">
+                    Đã có tài khoản? <a th:href="@{/login}">Đăng nhập</a>
+                </p>
+            </div>
+        </div>
+
+    </div>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

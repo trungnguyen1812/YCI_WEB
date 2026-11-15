@@ -70,6 +70,42 @@ public class WebController {
         return "pages/public/regulations";
     }
 
+    @GetMapping("/complete-profile")
+    public String completeProfile(HttpSession session, RedirectAttributes redirectAttributes, Model model) {
+        if (session.getAttribute(SESSION_USER) == null) {
+            return "redirect:/login";
+        }
+        Object user = session.getAttribute(SESSION_USER);
+        if (user instanceof UserDTO userDTO && userDTO.getPhone() != null && !userDTO.getPhone().isBlank()) {
+            // Phone already set — no need to complete
+            return "redirect:/profile";
+        }
+        model.addAttribute("pageTitle", "Hoàn tất hồ sơ");
+        model.addAttribute("pageName", "complete-profile");
+        return "pages/auth/complete-profile";
+    }
+
+    @PostMapping("/complete-profile")
+    public String doCompleteProfile(@ModelAttribute UpdateProfileRequest updateProfileRequest,
+                                    HttpSession session,
+                                    RedirectAttributes redirectAttributes) {
+        if (session.getAttribute(SESSION_USER) == null) {
+            return "redirect:/login";
+        }
+        MessageResponse response = userService.updateProfile(updateProfileRequest);
+        if (HttpStatus.OK.equals(response.getStatus())) {
+            // Refresh session với data mới
+            Object userResult = userService.getUserById(updateProfileRequest.getIdUser());
+            if (userResult instanceof DataResponse<?> userResponse && userResponse.getData() instanceof UserDTO userDTO) {
+                session.setAttribute(SESSION_USER, userDTO);
+            }
+            redirectAttributes.addFlashAttribute("success", "Hồ sơ đã hoàn tất. Bạn có thể đặt thuê ngay!");
+            return "redirect:/profile";
+        }
+        redirectAttributes.addFlashAttribute("error", response.getMessage());
+        return "redirect:/complete-profile";
+    }
+
     @GetMapping("/booking")
     public String booking(HttpSession session, RedirectAttributes redirectAttributes, Model model) {
         Object user = session.getAttribute(SESSION_USER);
@@ -80,6 +116,13 @@ public class WebController {
         if (user instanceof UserDTO userDTO && isAdminRole(userDTO)) {
             redirectAttributes.addFlashAttribute("error", "Tài khoản quản trị chỉ được xem, không thể đặt thuê.");
             return "redirect:/admin";
+        }
+        // Kiểm tra hồ sơ đầy đủ (bắt buộc SĐT)
+        if (user instanceof UserDTO userDTO) {
+            if (userDTO.getPhone() == null || userDTO.getPhone().isBlank()) {
+                redirectAttributes.addFlashAttribute("error", "Vui lòng bổ sung số điện thoại để có thể đặt thuê.");
+                return "redirect:/complete-profile";
+            }
         }
         model.addAttribute("pageTitle", "Đặt lịch thuê");
         model.addAttribute("pageName", "booking");
@@ -170,14 +213,19 @@ public class WebController {
 
     @PostMapping("/register")
     public String doRegister(@ModelAttribute RegisterRequest registerRequest,
+                             Model model,
                              RedirectAttributes redirectAttributes) {
         MessageResponse response = userService.register(registerRequest);
         if (HttpStatus.CREATED.equals(response.getStatus())) {
             redirectAttributes.addFlashAttribute("success", "Đăng ký thành công. Hãy đăng nhập để bắt đầu đặt thuê.");
             return "redirect:/login";
         }
-        redirectAttributes.addFlashAttribute("error", response.getMessage());
-        return "redirect:/register";
+        // Lỗi → giữ lại form, không redirect
+        model.addAttribute("error", response.getMessage());
+        model.addAttribute("registerRequest", registerRequest);
+        model.addAttribute("pageTitle", "Đăng ký");
+        model.addAttribute("pageName", "register");
+        return "pages/auth/register";
     }
 
     @PostMapping("/logout")
@@ -267,6 +315,17 @@ public class WebController {
         model.addAttribute("pageTitle", "Cấu hình nghiệp vụ");
         model.addAttribute("pageName", "admin-settings");
         return "pages/admin/settings";
+    }
+
+    @GetMapping("/admin/refunds")
+    public String adminRefunds(HttpSession session, RedirectAttributes redirectAttributes, Model model) {
+        if (!hasAdminAccess(session)) {
+            redirectAttributes.addFlashAttribute("error", "Tài khoản hiện tại không có quyền quản trị.");
+            return "redirect:/profile";
+        }
+        model.addAttribute("pageTitle", "Hủy đơn & Hoàn tiền");
+        model.addAttribute("pageName", "admin-refunds");
+        return "pages/admin/refunds";
     }
 
     private boolean hasStaffAccess(HttpSession session) {

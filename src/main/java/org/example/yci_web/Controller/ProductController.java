@@ -3,6 +3,7 @@ package org.example.yci_web.Controller;
 import org.example.yci_web.Model.DTO.ProductDTO;
 import org.example.yci_web.Model.Request.ProductRequest;
 import org.example.yci_web.Model.Request.RentalPriceProductRequest;
+import org.example.yci_web.Model.Request.UpdateProductStatusRequest;
 import org.example.yci_web.Model.Response.DataPageResponse;
 import org.example.yci_web.Model.Response.DataResponse;
 import org.example.yci_web.Model.Response.MessageResponse;
@@ -66,6 +67,11 @@ public class ProductController {
         return new ResponseEntity<>(messageResponse, messageResponse.getStatus());
     }
 
+    @PutMapping(value = "/api/admin/product/toggle-active")
+    public ResponseEntity<Object> toggleProductActive(@RequestBody UpdateProductStatusRequest request) {
+        MessageResponse messageResponse = productService.updateProductStatus(request);
+        return new ResponseEntity<>(messageResponse, messageResponse.getStatus());
+    }
     @DeleteMapping(value = "/api/admin/product/id-product={idProduct}")
     public ResponseEntity<Object> deleteProduct(@PathVariable("idProduct") Long idProduct) {
         MessageResponse messageResponse = productService.deleteProduct(idProduct);

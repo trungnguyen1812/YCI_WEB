@@ -8,107 +8,253 @@
 <main class="admin-layout">
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <section class="admin-content">
-        <div class="admin-heading">
+
+        <div class="admin-heading" style="padding-top:10px;">
             <div>
-                <p class="eyebrow">Thiết bị</p>
-                <h1>Quản lý máy ảnh, ống kính và phụ kiện</h1>
+                <p class="eyebrow">Quản lý kho</p>
+                <h1>Máy ảnh, ống kính &amp; phụ kiện</h1>
+                <p>Quản lý danh sách thiết bị, giá thuê và hình ảnh.</p>
             </div>
+            <button class="button primary" type="button" id="btnOpenAddProduct" style="flex-shrink:0;margin-top:6px;">
+                <i data-lucide="plus"></i> Thêm thiết bị
+            </button>
         </div>
 
-        <section class="admin-grid two">
-            <form class="surface form-grid" data-admin-product-form enctype="multipart/form-data">
-                <h2>Thông tin thiết bị</h2>
-                <input type="hidden" name="idProduct">
-                <label>
-                    <span>Tên thiết bị</span>
-                    <input name="nameProduct" required>
-                </label>
-                <div class="form-row two">
-                    <label>
-                        <span>Thương hiệu</span>
-                        <input name="brand" required>
-                    </label>
-                    <label>
-                        <span>Serial</span>
-                        <input name="serialNumber" required>
-                    </label>
-                </div>
-                <div class="form-row two">
-                    <label>
-                        <span>Danh mục</span>
-                        <select name="idCategory" data-admin-product-category required></select>
-                    </label>
-                    <label>
-                        <span>Tiền cọc</span>
-                        <input name="depositPrice" type="number" min="0" step="1000" required>
-                    </label>
-                </div>
-                <label>
-                    <span>Mô tả</span>
-                    <textarea name="description" rows="4" required></textarea>
-                </label>
-                <div class="product-image-field">
-                    <label>
-                        <span>Hình ảnh</span>
-                        <input name="images" type="file" accept="image/*" multiple data-product-image-input>
-                    </label>
-                    <div class="product-image-preview" data-product-image-preview hidden></div>
-                </div>
-                <div class="button-row">
-                    <button class="button primary" type="submit">Lưu thiết bị</button>
-                    <button class="button ghost" type="button" data-reset-product-form>Làm mới</button>
-                </div>
-            </form>
-
-            <form class="surface form-grid" data-admin-price-form>
-                <h2>Giá thuê thiết bị</h2>
-                <input type="hidden" name="idRentalPrice">
-                <label>
-                    <span>Thiết bị</span>
-                    <select name="productId" data-price-product-select required></select>
-                </label>
-                <label>
-                    <span>Loại giá</span>
-                    <select name="typeId" data-price-type-select required></select>
-                </label>
-                <label>
-                    <span>Giá</span>
-                    <input name="price" type="number" min="0" step="1000" required>
-                </label>
-                <button class="button ghost" type="submit" data-price-submit>Thêm giá thuê</button>
-                <button class="button ghost" type="button" data-reset-price-form>Làm mới giá</button>
-            </form>
+        <!-- Toolbar -->
+        <section class="toolbar" style="flex-direction:column;gap:10px;">
+            <div class="toolbar-search" style="width:100%;">
+                <i data-lucide="search" class="toolbar-search-icon"></i>
+                <input data-admin-product-search type="search" placeholder="Tìm tên thiết bị, thương hiệu, serial...">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;">
+                <select class="select" data-admin-product-category-filter style="width:100%;">
+                    <option value="">Tất cả danh mục</option>
+                </select>
+                <select class="select" data-admin-product-status-filter style="width:100%;">
+                    <option value="">Tất cả tình trạng</option>
+                </select>
+            </div>
         </section>
 
-        <section class="toolbar surface">
-            <label class="search-field">
-                <i data-lucide="search"></i>
-                <input data-admin-product-search type="search" placeholder="Tìm tên thiết bị, thương hiệu, serial, danh mục">
-            </label>
-            <select class="select" data-admin-product-category-filter>
-                <option value="">Tất cả danh mục</option>
-            </select>
-            <select class="select" data-admin-product-status-filter>
-                <option value="">Tất cả tình trạng</option>
-            </select>
-        </section>
-
-        <section class="surface table-wrap">
+        <!-- Table -->
+        <div class="surface table-wrap" style="padding:0;overflow:hidden;">
             <table class="data-table">
                 <thead>
-                <tr>
-                    <th>Thiết bị</th>
-                    <th>Danh mục</th>
-                    <th>Giá thuê</th>
-                    <th>Tình trạng</th>
-                    <th></th>
-                </tr>
+                    <tr>
+                        <th style="width:70px;">Ảnh</th>
+                        <th>Thiết bị</th>
+                        <th>Danh mục</th>
+                        <th>Giá / giờ</th>
+                        <th>Tiền cọc</th>
+                        <th>Trạng thái</th>
+                        <th style="width:96px;">Hiển thị</th>
+                        <th style="width:80px;"></th>
+                    </tr>
                 </thead>
                 <tbody data-admin-products-table></tbody>
             </table>
-        </section>
+            <div class="pg-bar" id="pgProducts"></div>
+        </div>
+
     </section>
 </main>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: THÊM THIẾT BỊ
+     ═══════════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalAddProduct" hidden aria-modal="true" role="dialog" aria-labelledby="modalAddTitle">
+    <div class="pmodal-box">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Thiết bị mới</p>
+                <h2 id="modalAddTitle">Thêm thiết bị vào kho</h2>
+            </div>
+            <button class="bmodal-close" type="button" data-close-add-modal aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body">
+            <form id="formAddProduct" enctype="multipart/form-data">
+                <div class="pmodal-cols">
+
+                    <!-- Cột trái: thông tin -->
+                    <div class="pmodal-col">
+                        <div class="pmodal-section-title"><i data-lucide="info"></i> Thông tin cơ bản</div>
+                        <div class="pform-grid">
+                            <div class="pform-field span2">
+                                <label>Tên thiết bị <span class="required-mark">*</span></label>
+                                <input name="nameProduct" placeholder="Canon EOS R5..." required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Thương hiệu <span class="required-mark">*</span></label>
+                                <input name="brand" placeholder="Canon, Sony..." required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Serial Number <span class="required-mark">*</span></label>
+                                <input name="serialNumber" placeholder="SN-001..." required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Danh mục <span class="required-mark">*</span></label>
+                                <select name="idCategory" data-add-product-category required></select>
+                            </div>
+                            <div class="pform-field">
+                                <label>Tiền cọc (đ) <span class="required-mark">*</span></label>
+                                <input name="depositPrice" id="addDepositPrice"
+                                       type="text" inputmode="numeric"
+                                       placeholder="0" autocomplete="off" required
+                                       data-money-input>
+                            </div>
+                            <div class="pform-field span2">
+                                <label>Mô tả</label>
+                                <textarea name="description" rows="3" placeholder="Mô tả chi tiết thiết bị..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Giá thuê -->
+                        <div class="pmodal-section-title" style="margin-top:18px;">
+                            <i data-lucide="tag"></i> Giá thuê
+                        </div>
+
+                        <!-- Giá theo giờ -->
+                        <div class="pmodal-price-box">
+                            <div class="pmodal-price-label">
+                                <i data-lucide="clock"></i>
+                                <span>Giá theo <strong id="addPriceTypeName">giờ</strong> <span class="required-mark">*</span></span>
+                            </div>
+                            <input id="addPriceValue" name="pricePerHour"
+                                   type="text" inputmode="numeric"
+                                   placeholder="150.000" autocomplete="off" required
+                                   data-money-input>
+                            <small class="field-note">Giá thuê mỗi 1 giờ.</small>
+                        </div>
+
+                        <!-- Giá theo ngày -->
+                        <div class="pmodal-price-box" style="margin-top:10px;border-color:rgba(79,111,174,.28);background:linear-gradient(135deg,#f8faff,#fff);">
+                            <div class="pmodal-price-label" style="color:#4f6fae;">
+                                <i data-lucide="calendar" style="color:#4f6fae;"></i>
+                                <span>Giá theo <strong id="addDailyTypeName">ngày</strong> <span style="font-size:11px;color:var(--muted);">(tùy chọn)</span></span>
+                            </div>
+                            <input id="addDailyPriceValue" name="pricePerDay"
+                                   type="text" inputmode="numeric"
+                                   placeholder="Để trống nếu không có giá ngày"
+                                   autocomplete="off"
+                                   data-money-input>
+                            <small class="field-note">Giá thuê trọn 1 ngày (24 giờ). Để trống để bỏ qua.</small>
+                        </div>
+                    </div>
+
+                    <!-- Cột phải: ảnh -->
+                    <div class="pmodal-col">
+                        <div class="pmodal-section-title">
+                            <i data-lucide="image"></i> Hình ảnh thiết bị <span class="required-mark">*</span>
+                        </div>
+                        <label class="pmodal-upload-zone" for="addProductImages">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Kéo thả hoặc nhấn để chọn ảnh</span>
+                            <small>PNG, JPG — nhiều file</small>
+                            <input id="addProductImages" name="images" type="file" accept="image/*" multiple
+                                   data-add-product-image-input style="display:none;">
+                        </label>
+                        <div class="product-image-preview" data-add-product-image-preview hidden></div>
+                    </div>
+
+                </div><!-- /.pmodal-cols -->
+
+                <div class="pmodal-footer">
+                    <button class="button ghost" type="button" data-close-add-modal>Hủy</button>
+                    <button class="button primary" type="submit" id="btnSubmitAddProduct">
+                        <i data-lucide="save"></i> Lưu thiết bị
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: SỬA THIẾT BỊ
+     ═══════════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalEditProduct" hidden aria-modal="true" role="dialog" aria-labelledby="modalEditTitle">
+    <div class="pmodal-box">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow" id="modalEditEyebrow">Chỉnh sửa</p>
+                <h2 id="modalEditTitle">Sửa thiết bị</h2>
+            </div>
+            <button class="bmodal-close" type="button" data-close-edit-modal aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body">
+            <form id="formEditProduct" enctype="multipart/form-data">
+                <input type="hidden" name="idProduct" id="editProductId">
+                <div class="pmodal-cols">
+
+                    <!-- Cột trái: thông tin -->
+                    <div class="pmodal-col">
+                        <div class="pmodal-section-title"><i data-lucide="info"></i> Thông tin cơ bản</div>
+                        <div class="pform-grid">
+                            <div class="pform-field span2">
+                                <label>Tên thiết bị <span class="required-mark">*</span></label>
+                                <input name="nameProduct" id="editNameProduct" required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Thương hiệu <span class="required-mark">*</span></label>
+                                <input name="brand" id="editBrand" required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Serial Number <span class="required-mark">*</span></label>
+                                <input name="serialNumber" id="editSerialNumber" required>
+                            </div>
+                            <div class="pform-field">
+                                <label>Danh mục <span class="required-mark">*</span></label>
+                                <select name="idCategory" id="editCategory" data-edit-product-category required></select>
+                            </div>
+                            <div class="pform-field">
+                                <label>Tiền cọc (đ) <span class="required-mark">*</span></label>
+                                <input name="depositPrice" id="editDepositPrice"
+                                       type="text" inputmode="numeric"
+                                       placeholder="0" autocomplete="off" required
+                                       data-money-input>
+                            </div>
+                            <div class="pform-field span2">
+                                <label>Mô tả</label>
+                                <textarea name="description" id="editDescription" rows="3"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Sửa giá -->
+                        <div class="pmodal-section-title" style="margin-top:18px;">
+                            <i data-lucide="tag"></i> Giá thuê
+                        </div>
+                        <div id="editPriceList" class="pmodal-edit-prices"></div>
+                    </div>
+
+                    <!-- Cột phải: ảnh -->
+                    <div class="pmodal-col">
+                        <div class="pmodal-section-title"><i data-lucide="image"></i> Hình ảnh thiết bị</div>
+                        <label class="pmodal-upload-zone" for="editProductImages">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Thêm ảnh mới</span>
+                            <small>PNG, JPG — nhiều file</small>
+                            <input id="editProductImages" name="images" type="file" accept="image/*" multiple
+                                   data-edit-product-image-input style="display:none;">
+                        </label>
+                        <div class="product-image-preview" data-edit-product-image-preview hidden></div>
+                    </div>
+
+                </div><!-- /.pmodal-cols -->
+
+                <div class="pmodal-footer">
+                    <button class="button ghost" type="button" data-close-edit-modal>Hủy</button>
+                    <button class="button primary" type="submit" id="btnSubmitEditProduct">
+                        <i data-lucide="save"></i> Lưu thay đổi
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
 </body>

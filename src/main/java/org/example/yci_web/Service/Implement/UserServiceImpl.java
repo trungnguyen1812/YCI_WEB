@@ -3,6 +3,7 @@ package org.example.yci_web.Service.Implement;
 import org.example.yci_web.Entity.UserEntity;
 import org.example.yci_web.Model.DTO.LoginDTO;
 import org.example.yci_web.Model.DTO.UserDTO;
+import org.example.yci_web.Model.Request.AdminCreateUserRequest;
 import org.example.yci_web.Model.Request.RegisterRequest;
 import org.example.yci_web.Model.Request.UpdatePasswordRequest;
 import org.example.yci_web.Model.Request.UpdateProfileRequest;
@@ -42,17 +43,23 @@ public class UserServiceImpl implements UserService {
         if (userEntity != null) {
             messageResponse.setMessage("Email đã được sử dụng");
             messageResponse.setStatus(HttpStatus.BAD_REQUEST);
-        }else {
-            UserEntity user = new UserEntity();
-            modelMapper.map(registerRequest, user);
-            user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-            user.setCreatedAt(LocalDateTime.now());
-            user.setUpdatedAt(LocalDateTime.now());
-            user.setRole(1);
-            userRepository.save(user);
-            messageResponse.setMessage("Đăng ký tài khoản thành công");
-            messageResponse.setStatus(HttpStatus.CREATED);
+            return messageResponse;
         }
+        UserEntity existingCccd = userRepository.findByCccd(registerRequest.getCccd());
+        if (existingCccd != null && registerRequest.getCccd() != null && !registerRequest.getCccd().isBlank()) {
+            messageResponse.setMessage("Số CCCD đã được đăng ký với tài khoản khác");
+            messageResponse.setStatus(HttpStatus.BAD_REQUEST);
+            return messageResponse;
+        }
+        UserEntity user = new UserEntity();
+        modelMapper.map(registerRequest, user);
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        user.setRole(1);
+        userRepository.save(user);
+        messageResponse.setMessage("Đăng ký tài khoản thành công");
+        messageResponse.setStatus(HttpStatus.CREATED);
         return messageResponse;
     }
 
@@ -199,5 +206,45 @@ public class UserServiceImpl implements UserService {
             userDTOS.add(userDTO);
         }
         return new PageImpl<>(userDTOS, userEntities.getPageable(), userEntities.getTotalElements());
+    }
+
+    @Override
+    public MessageResponse createUser(AdminCreateUserRequest request) {
+        MessageResponse messageResponse = new MessageResponse();
+        if (userRepository.findByEmail(request.getEmail()) != null) {
+            messageResponse.setMessage("Email đã được sử dụng");
+            messageResponse.setStatus(HttpStatus.BAD_REQUEST);
+            return messageResponse;
+        }
+        UserEntity user = new UserEntity();
+        user.setFullName(request.getFullName());
+        user.setPhone(request.getPhone());
+        user.setEmail(request.getEmail());
+        user.setAddress(request.getAddress());
+        user.setPassword(passwordEncoder.encode(
+                request.getPassword() != null && !request.getPassword().isBlank()
+                        ? request.getPassword() : "Yci@12345"));
+        user.setRole(request.getRole() != null ? request.getRole() : 1);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+        messageResponse.setMessage("Tạo tài khoản thành công");
+        messageResponse.setStatus(HttpStatus.CREATED);
+        return messageResponse;
+    }
+
+    @Override
+    public MessageResponse deleteUser(Long idUser) {
+        MessageResponse messageResponse = new MessageResponse();
+        try {
+            UserEntity user = userRepository.findById(idUser).get();
+            userRepository.delete(user);
+            messageResponse.setMessage("Đã xóa tài khoản");
+            messageResponse.setStatus(HttpStatus.OK);
+        } catch (NoSuchElementException e) {
+            messageResponse.setMessage("Không tìm thấy tài khoản");
+            messageResponse.setStatus(HttpStatus.NOT_FOUND);
+        }
+        return messageResponse;
     }
 }

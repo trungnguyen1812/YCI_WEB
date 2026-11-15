@@ -31,13 +31,9 @@
                 <span>Email</span>
                 <input name="email" type="email" th:value="${currentUser.email}" required>
             </label>
-            <label>
-                <span>CCCD</span>
-                <input name="cccd" th:value="${currentUser.cccd}" required>
-            </label>
             <label class="span-2">
                 <span>Địa chỉ</span>
-                <input name="address" th:value="${currentUser.address}" required>
+                <input name="address" th:value="${currentUser.address}">
             </label>
             <button class="button primary span-2" type="submit">Cập nhật hồ sơ</button>
         </form>

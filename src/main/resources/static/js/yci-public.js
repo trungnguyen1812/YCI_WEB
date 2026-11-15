@@ -1,4 +1,4 @@
-(function () {
+﻿(function () {
     async function loadProducts() {
         return YCI.unwrapList(await YCI.apiGet("/api/product/all"));
     }
@@ -327,148 +327,305 @@
     }
 
     function bootBooking() {
-        const cartNode = YCI.qs("[data-booking-cart]");
-        const emptyNode = YCI.qs("[data-empty-cart]");
-        const totalNode = YCI.qs("[data-booking-total]");
-        const depositReferenceNode = YCI.qs("[data-booking-deposit-reference]");
-        const durationNote = YCI.qs("[data-duration-note]");
-        const rentalSelect = YCI.qs("[data-rental-type-select]");
-        const form = YCI.qs("[data-booking-form]");
-        const endInput = form.elements.timeEndInput;
-        let products = [];
-        let selectedProducts = [];
-        let rentalTypes = [];
+        const cartNode       = YCI.qs("[data-booking-cart]");
+        const emptyNode      = YCI.qs("[data-empty-cart]");
+        const totalNode      = YCI.qs("[data-booking-total]");
+        const depositRefNode = YCI.qs("[data-booking-deposit-reference]");
+        const form           = YCI.qs("[data-booking-form]");
+        const durationInfo   = document.getElementById("durationInfo");
+        const durationText   = document.getElementById("durationText");
+        const timelineWrap   = document.getElementById("bookingTimeline");
+        const weekLabel      = document.getElementById("tlWeekLabel");
+        const btnPrev        = document.getElementById("tlPrev");
+        const btnNext        = document.getElementById("tlNext");
 
-        function selectedRentalLabel() {
-            return rentalSelect.options[rentalSelect.selectedIndex]?.textContent || "";
+        const dateRowDaily   = document.getElementById("dateRowDaily");
+        const dateRowHourly  = document.getElementById("dateRowHourly");
+        const inputDateStart = document.getElementById("inputDateStart");
+        const inputDateEnd   = document.getElementById("inputDateEnd");
+        const inputTimeStart = document.getElementById("inputTimeStart");
+        const inputTimeEnd   = document.getElementById("inputTimeEnd");
+
+        let products = [], selectedProducts = [], allBookings = [];
+        let priceType = "hourly";
+        let rentalTypesList = [];
+        let tlViewDate = new Date();
+        let tlWeekOffset = 0;
+
+        const pad = n => String(n).padStart(2, "0");
+        const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+        const addDays = (d, n) => { const r = new Date(d); r.setDate(r.getDate()+n); return r; };
+        const startOfWeek = d => { const r = new Date(d); r.setDate(r.getDate()-((r.getDay()+6)%7)); r.setHours(0,0,0,0); return r; };
+
+        function hourlyPrice(p) {
+            const pr = (p.rentalPriceDTOS||[]).find(x => /gi[oờ]|hour/i.test(x.rentalType));
+            return pr ? Number(pr.price||0) : ((p.rentalPriceDTOS||[]).length ? Number(p.rentalPriceDTOS[0].price||0) : 0);
         }
-
+        function dailyPrice(p) {
+            const pr = (p.rentalPriceDTOS||[]).find(x => /ng[àa]y|day/i.test(x.rentalType));
+            return pr ? Number(pr.price||0) : 0;
+        }
         function selectedRentalType() {
-            return rentalTypes.find((item) => String(item.idRentalType) === String(rentalSelect.value));
+            if (priceType === "daily") return rentalTypesList.find(rt => /ng[àa]y|day/i.test(rt.type)) || rentalTypesList[0] || null;
+            return rentalTypesList.find(rt => /gi[oờ]|hour/i.test(rt.type)) || rentalTypesList[0] || null;
         }
 
-        function syncEndTime() {
-            const startValue = form.elements.timeStartInput.value;
-            const rentalType = selectedRentalType();
-            const hours = YCI.rentalDurationHours(rentalType?.type || selectedRentalLabel());
-            if (!startValue || !hours) {
-                endInput.value = "";
-                durationNote.textContent = !startValue
-                    ? "Chọn giờ bắt đầu để hệ thống tự tính giờ trả."
-                    : "Gói thuê này chưa có thời lượng rõ ràng. Hãy cấu hình loại giá dạng 4H, 6H hoặc 24H.";
-                return false;
+        function calcDailyDays() {
+            if (!inputDateStart.value || !inputDateEnd.value) return 0;
+            const s = new Date(inputDateStart.value), e = new Date(inputDateEnd.value);
+            return (isNaN(s)||isNaN(e)||e<=s) ? 0 : Math.ceil((e-s)/86400000);
+        }
+        function calcHourlyHours() {
+            if (!inputTimeStart.value || !inputTimeEnd.value) return 0;
+            const s = new Date(inputTimeStart.value), e = new Date(inputTimeEnd.value);
+            return (isNaN(s)||isNaN(e)||e<=s) ? 0 : Math.ceil((e-s)/3600000);
+        }
+        function calcTotal() {
+            if (priceType === "daily") {
+                const d = calcDailyDays();
+                return selectedProducts.reduce((s,p) => s + dailyPrice(p)*d, 0);
             }
-            endInput.value = YCI.addHoursToLocalValue(startValue, hours);
-            durationNote.textContent = `Giờ trả được tự tính sau ${YCI.formatDuration(hours)} theo gói ${selectedRentalLabel()}.`;
-            return true;
+            const h = calcHourlyHours();
+            return selectedProducts.reduce((s,p) => s + hourlyPrice(p)*h, 0);
         }
 
-        function productPrice(product) {
-            const label = selectedRentalLabel();
-            const price = (product.rentalPriceDTOS || []).find((item) => item.rentalType === label);
-            return price ? Number(price.price || 0) : null;
-        }
+        function fmtDate(val) { if (!val) return "—"; const d=new Date(val); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()}`; }
+        function fmtDT(val) { if (!val) return "—"; const d=new Date(val); return `${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 
-        function rentalTotal() {
-            return selectedProducts.reduce((sum, product) => sum + Number(productPrice(product) || 0), 0);
-        }
-
-        function depositReferenceTotal() {
-            return selectedProducts.reduce((sum, product) => sum + Number(product.depositPrice || 0), 0);
+        function updateTotals() {
+            totalNode.textContent = YCI.money(calcTotal());
+            depositRefNode.textContent = YCI.money(selectedProducts.reduce((s,p) => s+Number(p.depositPrice||0), 0));
+            if (priceType === "daily") {
+                const d = calcDailyDays();
+                if (d > 0) { durationText.textContent = `${d} ngày · ${fmtDate(inputDateStart.value)} → ${fmtDate(inputDateEnd.value)}`; durationInfo.hidden = false; }
+                else durationInfo.hidden = true;
+            } else {
+                const h = calcHourlyHours();
+                if (h > 0) { durationText.textContent = `${h} giờ · ${fmtDT(inputTimeStart.value)} → ${fmtDT(inputTimeEnd.value)}`; durationInfo.hidden = false; }
+                else durationInfo.hidden = true;
+            }
         }
 
         function renderCart() {
             const ids = YCI.readCart();
-            selectedProducts = ids.map((id) => products.find((product) => Number(product.idProduct) === Number(id))).filter(Boolean);
+            selectedProducts = ids.map(id => products.find(p => Number(p.idProduct)===Number(id))).filter(Boolean);
             emptyNode.hidden = selectedProducts.length > 0;
-            cartNode.innerHTML = selectedProducts.map((product) => {
-                const price = productPrice(product);
-                return `
-                    <article class="booking-item">
-                        <div class="booking-item-main">
-                            <img src="${YCI.productImage(product)}" alt="${YCI.escapeHtml(product.nameProduct)}" ${YCI.imageFallbackAttribute()}>
-                            <div>
-                                <strong>${YCI.escapeHtml(product.nameProduct)}</strong>
-                                <p class="muted">${YCI.escapeHtml(product.categoryName || "")} - ${YCI.escapeHtml(product.brand || "")}</p>
-                                <span class="price-chip">${price == null ? "Chưa có giá cho gói này" : YCI.money(price)}</span>
-                                <span class="price-chip subtle">Cọc tham chiếu ${YCI.money(product.depositPrice)}</span>
-                            </div>
-                            <button class="icon-button danger" type="button" data-remove-cart="${product.idProduct}" aria-label="Xóa thiết bị">
-                                <i data-lucide="x"></i>
-                            </button>
-                        </div>
-                    </article>
-                `;
+            cartNode.innerHTML = selectedProducts.map(p => {
+                const pH = hourlyPrice(p), pD = dailyPrice(p);
+                const chips = [pH?`<span class="price-chip">${YCI.money(pH)} / giờ</span>`:null, pD?`<span class="price-chip" style="background:#e8f0fe;color:#1a56db;">${YCI.money(pD)} / ngày</span>`:null].filter(Boolean).join("")||`<span class="price-chip subtle">Chưa có giá</span>`;
+                return `<article class="booking-item"><div class="booking-item-main">
+                    <img src="${YCI.productImage(p)}" alt="${YCI.escapeHtml(p.nameProduct)}" ${YCI.imageFallbackAttribute()}>
+                    <div><strong>${YCI.escapeHtml(p.nameProduct)}</strong><p class="muted">${YCI.escapeHtml(p.categoryName||"")} · ${YCI.escapeHtml(p.brand||"")}</p>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${chips}</div>
+                    <span class="price-chip subtle" style="margin-top:4px;">Cọc ${YCI.money(p.depositPrice)}</span></div>
+                    <button class="icon-button danger" type="button" data-remove-cart="${p.idProduct}" aria-label="Xóa"><i data-lucide="x"></i></button>
+                </div></article>`;
             }).join("");
-            totalNode.textContent = YCI.money(rentalTotal());
-            depositReferenceNode.textContent = YCI.money(depositReferenceTotal());
+            updateTotals(); renderTimeline(); YCI.iconRefresh();
+        }
+
+        cartNode.addEventListener("click", async e => { const b=e.target.closest("[data-remove-cart]"); if(!b)return; await YCI.removeFromCart(b.dataset.removeCart); renderCart(); });
+        YCI.qs("[data-clear-cart]")?.addEventListener("click", async () => { await YCI.clearCart(); renderCart(); });
+
+        // ── Price type toggle ─────────────────────────────────
+        document.querySelectorAll("[data-price-type]").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll("[data-price-type]").forEach(b => b.classList.remove("is-active"));
+                btn.classList.add("is-active");
+                priceType = btn.dataset.priceType;
+                dateRowDaily.hidden = priceType !== "daily";
+                dateRowHourly.hidden = priceType !== "hourly";
+                updateTotals(); renderTimeline();
+            });
+        });
+
+        // ── Date inputs (daily) ────────────────────────────────
+        const todayStr = dateStr(new Date());
+        inputDateStart.min = todayStr; inputDateEnd.min = todayStr;
+        inputDateStart.addEventListener("change", () => {
+            // Reset nếu chọn ngày trong quá khứ
+            if (inputDateStart.value && inputDateStart.value < todayStr) {
+                inputDateStart.value = todayStr;
+                YCI.toast("Ngày bắt đầu không được ở trong quá khứ.", "error");
+            }
+            if (inputDateEnd.value && inputDateEnd.value <= inputDateStart.value)
+                inputDateEnd.value = dateStr(addDays(new Date(inputDateStart.value), 1));
+            inputDateEnd.min = inputDateStart.value || todayStr;
+            updateTotals(); renderTimeline();
+        });
+        inputDateEnd.addEventListener("change", () => { updateTotals(); renderTimeline(); });
+
+        // ── Datetime inputs (hourly) ───────────────────────────
+        const nowIso = () => new Date().toISOString().slice(0,16);
+        inputTimeStart.min = nowIso();
+        inputTimeStart.addEventListener("change", () => {
+            // Reset nếu chọn giờ trong quá khứ
+            if (inputTimeStart.value && inputTimeStart.value < nowIso()) {
+                inputTimeStart.value = "";
+                YCI.toast("Giờ bắt đầu không được ở trong quá khứ.", "error");
+                return;
+            }
+            if (inputTimeStart.value) {
+                if (!inputTimeEnd.value || inputTimeEnd.value <= inputTimeStart.value) {
+                    const d = new Date(inputTimeStart.value); d.setHours(d.getHours()+1);
+                    inputTimeEnd.value = `${dateStr(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                }
+                inputTimeEnd.min = inputTimeStart.value;
+            }
+            updateTotals(); renderTimeline();
+        });
+        inputTimeEnd.addEventListener("change", () => { updateTotals(); renderTimeline(); });
+
+        // ── Timeline ───────────────────────────────────────────
+        // Trả về true nếu máy đang có đơn RENTING (chưa được trả, kể cả quá hẹn)
+        function isProductRenting(productId) {
+            return allBookings.some(b => {
+                const s = String(b.status || "").toUpperCase();
+                if (s !== "RENTING") return false;
+                return (b.bookingDetailDTOS||[]).some(d => Number(d.productBookingDTO?.idProduct||d.idProduct)===Number(productId));
+            });
+        }
+        function isBusy(productId, dateFrom, dateTo) {
+            return allBookings.some(b => {
+                // Bỏ qua đơn đã hủy, đã trả, hoàn tất
+                const s = String(b.status || "").toUpperCase();
+                if (s.includes("CANCEL") || s.includes("RETURNED") || s.includes("COMPLETED")) return false;
+                // Đơn RENTING được xử lý riêng bằng isProductRenting — bỏ qua ở đây
+                if (s === "RENTING") return false;
+                const has = (b.bookingDetailDTOS||[]).some(d => Number(d.productBookingDTO?.idProduct||d.idProduct)===Number(productId));
+                if (!has) return false;
+                return new Date(b.timeStart||"") < dateTo && new Date(b.timeEnd||"") > dateFrom;
+            });
+        }
+        function isDaySelected(ds) {
+            if (!inputDateStart.value || !inputDateEnd.value) return false;
+            return new Date(ds) >= new Date(inputDateStart.value) && new Date(ds) < new Date(inputDateEnd.value);
+        }
+        function isHourSelected(ds, h) {
+            if (!inputTimeStart.value || !inputTimeEnd.value) return false;
+            const s = new Date(inputTimeStart.value), e = new Date(inputTimeEnd.value);
+            return s < new Date(`${ds}T${pad(h+1)}:00:00`) && e > new Date(`${ds}T${pad(h)}:00:00`);
+        }
+
+        // ── DAILY timeline (14-day grid) ──────────────────────
+        function renderDailyTimeline() {
+            if (!selectedProducts.length) { timelineWrap.innerHTML = `<div class="empty-state small"><i data-lucide="calendar-x-2"></i><p>Thêm thiết bị vào giỏ để xem lịch.</p></div>`; YCI.iconRefresh(); return; }
+            const start = addDays(startOfWeek(new Date()), tlWeekOffset*7);
+            const days = Array.from({length:14}, (_,i) => addDays(start, i));
+            const today = dateStr(new Date());
+            weekLabel.textContent = `${pad(days[0].getDate())}/${pad(days[0].getMonth()+1)} – ${pad(days[13].getDate())}/${pad(days[13].getMonth()+1)}/${days[13].getFullYear()}`;
+            const dLabels = days.map(d => { const ds=dateStr(d), dow=["CN","T2","T3","T4","T5","T6","T7"][d.getDay()]; return `<div class="tl-day-header ${ds===today?"tl-today":""}" data-date="${ds}"><span class="tl-dow">${dow}</span><span class="tl-dd">${pad(d.getDate())}</span><span class="tl-mo">${pad(d.getMonth()+1)}</span></div>`; }).join("");
+            const rows = selectedProducts.map(p => {
+                const rented = isProductRenting(p.idProduct);
+                const cells = days.map(d => {
+                    const ds=dateStr(d), sel=isDaySelected(ds), td=ds===today;
+                    if (rented) {
+                        return `<div class="tl-cell tl-rented" data-date="${ds}" data-product="${p.idProduct}" data-rented-tip="⚠ Máy chưa được trả">🟠</div>`;
+                    }
+                    // Ngày trong quá khứ — không cho chọn
+                    if (ds < todayStr) {
+                        return `<div class="tl-cell tl-past" data-date="${ds}" data-product="${p.idProduct}" title="Ngày đã qua"></div>`;
+                    }
+                    const busy=isBusy(p.idProduct,new Date(`${ds}T00:00`),new Date(`${ds}T23:59`));
+                    let c="tl-cell"; if(busy)c+=" tl-busy"; else if(sel)c+=" tl-selected"; else if(td)c+=" tl-today-cell"; else c+=" tl-free";
+                    return `<div class="${c}" data-date="${ds}" data-product="${p.idProduct}" title="${busy?"Đã đặt":sel?"Lịch bạn chọn":"Trống"}">${busy?"🔴":sel?"🟢":""}</div>`;
+                }).join("");
+                return `<div class="tl-row"><div class="tl-product-label"><img src="/api/product/${p.idProduct}/image" alt="" onerror="this.style.display='none'" style="width:28px;height:22px;object-fit:cover;border-radius:4px;flex-shrink:0;"><span>${YCI.escapeHtml(p.nameProduct)}</span>${rented?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;white-space:nowrap;margin-left:4px;">Chưa trả</span>`:""}</div><div class="tl-cells">${cells}</div></div>`;
+            }).join("");
+            timelineWrap.innerHTML = `<div class="tl-grid"><div class="tl-header-row"><div class="tl-product-label tl-header-label">Thiết bị</div><div class="tl-cells">${dLabels}</div></div>${rows}</div>`;
+            timelineWrap.querySelectorAll(".tl-free, .tl-today-cell").forEach(cell => { cell.style.cursor="pointer"; cell.addEventListener("click", () => {
+                const ds=cell.dataset.date;
+                // Không cho click ngày trong quá khứ
+                if (ds < todayStr) return;
+                if(!inputDateStart.value||(inputDateStart.value&&inputDateEnd.value)){inputDateStart.value=ds;inputDateEnd.value="";inputDateEnd.min=ds;} else { if(ds>inputDateStart.value)inputDateEnd.value=ds; else inputDateStart.value=ds; } updateTotals(); renderTimeline(); }); });
             YCI.iconRefresh();
         }
 
-        cartNode.addEventListener("click", async (event) => {
-            const button = event.target.closest("[data-remove-cart]");
-            if (!button) {
-                return;
-            }
-            await YCI.removeFromCart(button.dataset.removeCart);
-            renderCart();
-        });
-        YCI.qs("[data-clear-cart]").addEventListener("click", async () => {
-            await YCI.clearCart();
-            renderCart();
-        });
-        rentalSelect.addEventListener("change", () => {
-            syncEndTime();
-            renderCart();
-        });
-        form.elements.timeStartInput.addEventListener("change", syncEndTime);
+        // ── HOURLY timeline (single day, 8h-21h) ───────────────
+        const H_START = 8, H_END = 21;
+        function renderHourlyTimeline() {
+            if (!selectedProducts.length) { timelineWrap.innerHTML = `<div class="empty-state small"><i data-lucide="calendar-x-2"></i><p>Thêm thiết bị vào giỏ để xem lịch.</p></div>`; YCI.iconRefresh(); return; }
+            const ds = dateStr(tlViewDate), today = dateStr(new Date());
+            const hours = Array.from({length:H_END-H_START+1}, (_,i) => H_START+i);
+            const dow = ["Chủ nhật","Thứ 2","Thứ 3","Thứ 4","Thứ 5","Thứ 6","Thứ 7"][tlViewDate.getDay()];
+            weekLabel.textContent = `${dow}, ${pad(tlViewDate.getDate())}/${pad(tlViewDate.getMonth()+1)}/${tlViewDate.getFullYear()}`;
+            const hLabels = hours.map(h => `<div class="tl-hour-header ${ds===today?"tl-today":""}">${pad(h)}h</div>`).join("");
+            const rows = selectedProducts.map(p => {
+                const rented = isProductRenting(p.idProduct);
+                const cells = hours.map(h => {
+                    const s=new Date(`${ds}T${pad(h)}:00`), e=new Date(`${ds}T${pad(h+1)}:00`);
+                    const past = ds===today && h < new Date().getHours();
+                    // Máy đang RENTING → khóa toàn bộ, bất kể giờ nào
+                    if (rented) {
+                        return `<div class="tl-cell tl-hour-cell tl-rented" data-date="${ds}" data-hour="${h}" data-product="${p.idProduct}" data-rented-tip="⚠ Máy chưa được trả">🟠</div>`;
+                    }
+                    const busy=isBusy(p.idProduct,s,e), sel=isHourSelected(ds,h);
+                    let c="tl-cell tl-hour-cell"; if(busy)c+=" tl-busy"; else if(sel)c+=" tl-selected"; else if(past)c+=" tl-past"; else c+=" tl-free";
+                    return `<div class="${c}" data-date="${ds}" data-hour="${h}" data-product="${p.idProduct}" title="${busy?"Đã đặt":sel?"Lịch bạn chọn":past?"Đã qua":"Trống"}">${busy?"🔴":sel?"🟢":""}</div>`;
+                }).join("");
+                return `<div class="tl-row"><div class="tl-product-label"><img src="/api/product/${p.idProduct}/image" alt="" onerror="this.style.display='none'" style="width:28px;height:22px;object-fit:cover;border-radius:4px;flex-shrink:0;"><span>${YCI.escapeHtml(p.nameProduct)}</span>${rented?`<span style="font-size:10px;padding:1px 6px;border-radius:10px;background:#fff3e0;color:#e65100;border:1px solid #ffcc80;white-space:nowrap;margin-left:4px;">Chưa trả</span>`:""}</div><div class="tl-cells tl-hour-cells">${cells}</div></div>`;
+            }).join("");
+            timelineWrap.innerHTML = `<div class="tl-grid tl-grid-hourly"><div class="tl-header-row"><div class="tl-product-label tl-header-label">Thiết bị</div><div class="tl-cells tl-hour-cells">${hLabels}</div></div>${rows}</div>`;
+            timelineWrap.querySelectorAll(".tl-free").forEach(cell => { cell.style.cursor="pointer"; cell.addEventListener("click", () => {
+                const ds=cell.dataset.date, h=Number(cell.dataset.hour), val=`${ds}T${pad(h)}:00`;
+                // Lần 1: chỉ set start, để end trống
+                // Lần 2: set end = (giờ click + 1):00
+                // Nếu cả 2 đã có → reset, set start mới
+                if (!inputTimeStart.value || (inputTimeStart.value && inputTimeEnd.value)) {
+                    inputTimeStart.value = val;
+                    inputTimeEnd.value = "";
+                    inputTimeEnd.min = val;
+                } else {
+                    // end = giờ click + 1 (vì mỗi ô = [h, h+1))
+                    const endVal = `${ds}T${pad(h + 1)}:00`;
+                    if (h + 1 > Number(inputTimeStart.value.split("T")[1].split(":")[0])) {
+                        inputTimeEnd.value = endVal;
+                    } else {
+                        // Click trước start → reset start
+                        inputTimeStart.value = val;
+                        inputTimeEnd.value = "";
+                        inputTimeEnd.min = val;
+                    }
+                }
+                updateTotals(); renderTimeline();
+            }); });
+            YCI.iconRefresh();
+        }
 
-        Promise.all([loadProducts(), YCI.apiGet("/api/admin/rental-type"), YCI.loadCart(true)])
-            .then(([productList, rentalTypeResponse]) => {
-                products = productList;
-                rentalTypes = YCI.unwrapList(rentalTypeResponse);
-                YCI.setOptions(rentalSelect, rentalTypes, (item) => item.idRentalType, (item) => item.type, "Chọn loại giá");
-                syncEndTime();
-                renderCart();
-            })
-            .catch((error) => YCI.toast(error.message, "error"));
+        function renderTimeline() { if (priceType==="daily") renderDailyTimeline(); else renderHourlyTimeline(); }
 
-        form.addEventListener("submit", async (event) => {
-            event.preventDefault();
-            if (!selectedProducts.length) {
-                YCI.toast("Cần chọn ít nhất một thiết bị.", "error");
-                return;
+        btnPrev.addEventListener("click", () => { if(priceType==="daily"){tlWeekOffset--;} else {tlViewDate=addDays(tlViewDate,-1);} renderTimeline(); });
+        btnNext.addEventListener("click", () => { if(priceType==="daily"){tlWeekOffset++;} else {tlViewDate=addDays(tlViewDate,1);} renderTimeline(); });
+
+        // ── Submit ─────────────────────────────────────────────
+        form.addEventListener("submit", async e => {
+            e.preventDefault();
+            if (!selectedProducts.length) { YCI.toast("Cần chọn ít nhất một thiết bị.", "error"); return; }
+            const rt = selectedRentalType();
+            if (!rt) { YCI.toast("Hệ thống chưa có loại giá phù hợp.", "error"); return; }
+            const now = new Date();
+            const toBackend = v => { if(!v)return""; if(v.includes("T")){const[d,t]=v.split("T");const[y,m,day]=d.split("-");return `${day}-${m}-${y} ${t}:00`;} const[y,m,day]=v.split("-");return `${day}-${m}-${y} 08:00:00`; };
+            let payload;
+            if (priceType === "daily") {
+                if (!inputDateStart.value || !inputDateEnd.value) { YCI.toast("Vui lòng chọn ngày.", "error"); return; }
+                if (new Date(inputDateStart.value) < new Date(todayStr)) { YCI.toast("Ngày bắt đầu không được ở trong quá khứ.", "error"); return; }
+                if (inputDateEnd.value <= inputDateStart.value) { YCI.toast("Ngày kết thúc phải sau ngày bắt đầu.", "error"); return; }
+                payload = { timeStart:toBackend(inputDateStart.value), timeEnd:toBackend(inputDateEnd.value), note:form.elements.note.value||"", userId:Number(form.elements.userId.value), totalAmount:calcTotal(), idRentalType:rt.idRentalType, productIds:selectedProducts.map(p=>p.idProduct) };
+            } else {
+                if (!inputTimeStart.value || !inputTimeEnd.value) { YCI.toast("Vui lòng chọn giờ.", "error"); return; }
+                if (new Date(inputTimeStart.value) < now) { YCI.toast("Giờ bắt đầu không được ở trong quá khứ.", "error"); return; }
+                if (inputTimeEnd.value <= inputTimeStart.value) { YCI.toast("Giờ kết thúc phải sau giờ bắt đầu.", "error"); return; }
+                payload = { timeStart:toBackend(inputTimeStart.value), timeEnd:toBackend(inputTimeEnd.value), note:form.elements.note.value||"", userId:Number(form.elements.userId.value), totalAmount:calcTotal(), idRentalType:rt.idRentalType, productIds:selectedProducts.map(p=>p.idProduct) };
             }
-            if (!syncEndTime()) {
-                YCI.toast("Vui lòng chọn giờ bắt đầu và gói thuê có thời lượng rõ ràng.", "error");
-                return;
-            }
-            const missingPriceProducts = selectedProducts.filter((product) => productPrice(product) == null);
-            if (missingPriceProducts.length) {
-                YCI.toast("Có thiết bị chưa có giá cho gói thuê đã chọn.", "error");
-                return;
-            }
-            const formData = new FormData();
-            formData.append("timeStart", YCI.toBackendDate(form.elements.timeStartInput.value));
-            formData.append("timeEnd", YCI.toBackendDate(endInput.value));
-            formData.append("note", form.elements.note.value || "");
-            formData.append("userId", form.elements.userId.value);
-            formData.append("totalAmount", String(rentalTotal()));
-            formData.append("idRentalType", form.elements.idRentalType.value);
-            selectedProducts.forEach((product) => formData.append("productIds", product.idProduct));
-            formData.append("documentType", form.elements.documentType.value);
-            formData.append("documentNumber", form.elements.documentNumber.value);
-            formData.append("imageFront", form.elements.imageFront.files[0]);
-            formData.append("imageBack", form.elements.imageBack.files[0]);
-            try {
-                await YCI.apiForm("/api/booking", "POST", formData);
-                await YCI.clearCart();
-                YCI.toast("Đã gửi yêu cầu thuê.", "success");
-                window.setTimeout(() => window.location.assign("/orders"), 700);
-            } catch (error) {
-                YCI.toast(error.message, "error");
-            }
+            try { await YCI.apiJson("/api/booking","POST",payload); await YCI.clearCart(); YCI.toast("Đã gửi yêu cầu thuê.","success"); setTimeout(()=>window.location.assign("/orders"),700); }
+            catch(err){ YCI.toast(err.message,"error"); }
         });
+
+        // ── Init ───────────────────────────────────────────────
+        async function loadPaged(url) { let p=1,tp=1,it=[]; do{const s=url.includes("?")?"&":"?";const r=await YCI.apiGet(`${url}${s}page=${p}`);it.push(...YCI.unwrapList(r));tp=Number(r.totalPage||1);p++;}while(p<=tp); return it; }
+        Promise.all([loadProducts(), loadPaged("/api/admin/booking"), YCI.apiGet("/api/admin/rental-type").then(YCI.unwrapList), YCI.loadCart(true)])
+            .then(([pl, bk, rts]) => { products=pl; allBookings=bk; rentalTypesList=rts; renderCart(); })
+            .catch(err => YCI.toast(err.message, "error"));
     }
 
     function bootProfile() {
@@ -497,52 +654,473 @@
 
     function bootOrders() {
         const user = window.YCI_SESSION?.user;
-        if (!user?.idUser) {
-            return;
+        if (!user?.idUser) return;
+
+        // ── Modal chi tiết đơn ────────────────────────────────
+        const modalDetail   = document.getElementById("modalOrderDetail");
+        const detailBody    = document.getElementById("orderDetailBody");
+        const detailTitle   = document.getElementById("orderDetailTitle");
+        const detailEyebrow = document.getElementById("orderDetailEyebrow");
+
+        function openDetailModal(booking) {
+            if (!modalDetail) return;
+            detailEyebrow.textContent = booking.bookingCode || ('#' + booking.idBooking);
+            detailTitle.textContent   = (booking.userBookingDTO || {}).fullName || "Khách hàng";
+
+            const devices = (booking.bookingDetailDTOS || []).map(d => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);">
+                    <div>
+                        <strong style="font-size:14px;">${YCI.escapeHtml(d.productBookingDTO?.nameProduct || "Thiết bị")}</strong>
+                        <p style="font-size:12px;color:var(--muted);margin:2px 0 0;">
+                            ${YCI.escapeHtml(d.productBookingDTO?.serialNumber || "")}
+                            ${d.productBookingDTO?.brand ? '· ' + YCI.escapeHtml(d.productBookingDTO.brand) : ""}
+                        </p>
+                    </div>
+                    <strong style="color:var(--teal-dark);white-space:nowrap;">${YCI.money(d.totalPrice)}</strong>
+                </div>`).join("") || `<p class="muted">Không có thiết bị.</p>`;
+
+            const payments = (booking.paymentBookingDTOS || []).map(p => {
+                const isSurcharge = p.note && p.note.includes("Phụ thu");
+                const isDeposit   = p.note && p.note.includes("cọc");
+                const tagColor    = isSurcharge ? "#b45309" : isDeposit ? "#0369a1" : "#065f46";
+                const tagBg       = isSurcharge ? "#fef3c7"  : isDeposit ? "#e0f2fe"  : "#e6fbf1";
+                const tag         = p.note
+                    ? `<span style="font-size:11px;padding:1px 7px;border-radius:10px;background:${tagBg};color:${tagColor};font-weight:600;">${YCI.escapeHtml(p.note)}</span>`
+                    : "";
+                return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line);">
+                    <div style="display:flex;flex-direction:column;gap:3px;">
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <strong style="color:#1c8f65;">${YCI.money(p.price)}</strong>
+                            ${tag}
+                        </div>
+                        <span style="color:var(--muted);">${YCI.escapeHtml(p.paymentMethod || "—")} · ${YCI.formatDate(p.paidAt)}</span>
+                    </div>
+                    <span style="font-size:12px;color:var(--muted);white-space:nowrap;">Còn ${YCI.money(p.remainAmount)}</span>
+                </div>`;
+            }).join("") || `<p class="muted" style="font-size:13px;">Chưa có thanh toán.</p>`;
+
+            const summary = YCI.bookingSummary(booking);
+            detailBody.innerHTML = `
+                <!-- Thời gian -->
+                <div style="background:var(--surface-2);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;">
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                        <span style="color:var(--muted);">Thời gian thuê</span>
+                        <strong>${YCI.formatDate(booking.timeStart)} → ${YCI.formatDate(booking.timeEnd)}</strong>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                        <span style="color:var(--muted);">Trạng thái</span>
+                        <span class="status-pill ${YCI.statusClass(booking.status)}">${YCI.escapeHtml(YCI.statusLabel(booking.status))}</span>
+                    </div>
+                    ${booking.note ? `<div style="display:flex;justify-content:space-between;">
+                        <span style="color:var(--muted);">Ghi chú</span>
+                        <span>${YCI.escapeHtml(booking.note)}</span>
+                    </div>` : ""}
+                </div>
+
+                <!-- Thiết bị -->
+                <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px;">Thiết bị thuê</p>
+                <div style="margin-bottom:16px;">${devices}</div>
+
+                <!-- Tổng tiền -->
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+                    <div style="background:var(--surface-2);border-radius:10px;padding:10px 12px;text-align:center;">
+                        <p style="font-size:11px;color:var(--muted);margin:0 0 4px;">Tổng đơn</p>
+                        <strong style="font-size:15px;">${YCI.money(booking.totalAmount)}</strong>
+                    </div>
+                    <div style="background:#e6fbf1;border-radius:10px;padding:10px 12px;text-align:center;">
+                        <p style="font-size:11px;color:var(--muted);margin:0 0 4px;">Đã thanh toán</p>
+                        <strong style="font-size:15px;color:#1c8f65;">${YCI.money(summary.paid)}</strong>
+                    </div>
+                    <div style="background:#fff8e1;border-radius:10px;padding:10px 12px;text-align:center;">
+                        <p style="font-size:11px;color:var(--muted);margin:0 0 4px;">Còn lại</p>
+                        <strong style="font-size:15px;color:#b66a00;">${YCI.money(summary.remain)}</strong>
+                    </div>
+                </div>
+
+                <!-- Lịch sử thanh toán -->
+                <p style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 4px;">Lịch sử thanh toán</p>
+                <div style="margin-bottom:16px;">${payments}</div>
+
+                <div class="pmodal-footer" style="padding:14px 0 0;">
+                    <button class="button ghost" type="button" id="closeOrderDetailModal2" style="width:100%;">Đóng</button>
+                </div>`;
+
+            document.getElementById("closeOrderDetailModal2")?.addEventListener("click", closeDetailModal);
+            modalDetail.hidden = false;
+            document.body.classList.add("bmodal-open");
+            requestAnimationFrame(() => modalDetail.classList.add("is-open"));
+            YCI.iconRefresh();
         }
+
+        function closeDetailModal() {
+            if (!modalDetail) return;
+            modalDetail.classList.remove("is-open");
+            modalDetail.addEventListener("transitionend", () => {
+                modalDetail.hidden = true;
+                if (document.querySelectorAll(".pmodal-overlay:not([hidden])").length === 0)
+                    document.body.classList.remove("bmodal-open");
+            }, { once: true });
+        }
+        document.getElementById("closeOrderDetailModal")?.addEventListener("click", closeDetailModal);
+        modalDetail?.addEventListener("click", (e) => { if (e.target === modalDetail) closeDetailModal(); });
+
+        // ── Modal QR ────────────────────────────────────────────
+        const modalQR      = document.getElementById("modalQR");
+        const qrImage      = document.getElementById("qrImage");
+        const qrPaidBadge  = document.getElementById("qrPaidBadge");
+        const qrPolling    = document.getElementById("qrPollingStatus");
+        let qrPollInterval = null;
+
+        function openQRModal(qr) {
+            document.getElementById("qrModalTitle").textContent = `Cọc đơn ${qr.bookingCode || ('#' + qr.idBooking)}`;
+            qrImage.src = qr.qrImageUrl || "";
+            qrPaidBadge.hidden = true;
+            qrPolling.hidden = false;
+            document.getElementById("qrBankCode").textContent     = qr.bankCode || "";
+            document.getElementById("qrAccountNo").textContent    = qr.accountNumber || "";
+            document.getElementById("qrAccountName").textContent  = qr.accountName || "";
+            document.getElementById("qrAmount").textContent       = YCI.money(qr.amount);
+            document.getElementById("qrTransferContent").textContent = qr.referenceCode || "";
+            document.getElementById("qrExpiresAt").textContent    = qr.expiresAt
+                ? new Date(qr.expiresAt).toLocaleString("vi-VN") : "—";
+            modalQR.hidden = false;
+            document.body.classList.add("bmodal-open");
+            requestAnimationFrame(() => modalQR.classList.add("is-open"));
+
+            // Poll status
+            if (qrPollInterval) clearInterval(qrPollInterval);
+            qrPollInterval = setInterval(async () => {
+                try {
+                    const res = await YCI.apiGet(`/api/deposit/status/${qr.idBooking}`);
+                    const data = res.data || res;
+                    if (data.depositPaid) {
+                        clearInterval(qrPollInterval);
+                        qrPaidBadge.hidden = false;
+                        qrPolling.hidden = true;
+                        qrImage.style.opacity = "0.4";
+                        setTimeout(() => { closeModal(modalQR); window.location.reload(); }, 2500);
+                    }
+                } catch (_) {}
+            }, 4000);
+        }
+
+        function closeModal(el) {
+            if (qrPollInterval) { clearInterval(qrPollInterval); qrPollInterval = null; }
+            el.classList.remove("is-open");
+            el.addEventListener("transitionend", () => {
+                el.hidden = true;
+                document.body.classList.remove("bmodal-open");
+            }, { once: true });
+        }
+
+        document.getElementById("closeQrModal")?.addEventListener("click", () => closeModal(modalQR));
+        document.getElementById("closeQrModal2")?.addEventListener("click", () => closeModal(modalQR));
+        modalQR?.addEventListener("click", e => { if (e.target === modalQR) closeModal(modalQR); });
+
+        // ── Modal Cancel Request ─────────────────────────────────
+        const modalCancel = document.getElementById("modalCancelRequest");
+        document.getElementById("closeCancelModal")?.addEventListener("click", () => closeModal(modalCancel));
+        document.getElementById("closeCancelModal2")?.addEventListener("click", () => closeModal(modalCancel));
+        modalCancel?.addEventListener("click", e => { if (e.target === modalCancel) closeModal(modalCancel); });
+
+        document.getElementById("formCancelRequest")?.addEventListener("submit", async e => {
+            e.preventDefault();
+            const bookingId   = document.getElementById("cancelBookingId").value;
+            const reason      = document.getElementById("cancelReason").value.trim();
+            const bankName    = document.getElementById("cancelBankName").value.trim();
+            const accountNo   = document.getElementById("cancelAccountNo").value.trim();
+            const accountName = document.getElementById("cancelAccountName").value.trim();
+            if (!reason) { YCI.toast("Vui lòng nhập lý do hủy.", "error"); return; }
+            const btn = document.getElementById("btnSubmitCancelRequest");
+            btn.disabled = true;
+            try {
+                await YCI.apiJson(`/api/booking/${bookingId}/cancel-request`, "POST", {
+                    reason, bankName, accountNo, accountName
+                });
+                YCI.toast("Đã gửi yêu cầu hủy. Admin sẽ xem xét sớm nhất.", "success");
+                closeModal(modalCancel);
+                setTimeout(() => window.location.reload(), 800);
+            } catch (err) {
+                YCI.toast(err.message, "error");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // ── Mã QR nhận máy (cho đơn đã xác nhận) ─────────────────
+        const modalPickup = document.getElementById("modalPickupQR");
+        const pickupQrBox = document.getElementById("pickupQrBox");
+        const pickupQrTitle = document.getElementById("pickupQrTitle");
+
+        function openPickupModal(booking) {
+            if (!modalPickup || typeof QRCode === "undefined") {
+                YCI.toast("Không tạo được mã QR. Vui lòng tải lại trang.", "error");
+                return;
+            }
+            const name = (booking.userBookingDTO || {}).fullName || "";
+            const phone = (booking.userBookingDTO || {}).phone || "";
+            // Nội dung QR: YCI | mã đơn | tên khách | số điện thoại
+            const payload = "YCI|" + booking.idBooking + "|" + (booking.bookingCode || '') + "|" + name + "|" + phone;
+            pickupQrTitle.textContent = "Mã nhận máy · " + (booking.bookingCode || ('#' + booking.idBooking));
+            pickupQrBox.innerHTML = "";
+            new QRCode(pickupQrBox, {
+                text: payload, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M
+            });
+            modalPickup.hidden = false;
+            document.body.classList.add("bmodal-open");
+            requestAnimationFrame(() => modalPickup.classList.add("is-open"));
+            YCI.iconRefresh();
+        }
+        function closePickupModal() {
+            if (!modalPickup) return;
+            modalPickup.classList.remove("is-open");
+            modalPickup.addEventListener("transitionend", () => {
+                modalPickup.hidden = true;
+                document.body.classList.remove("bmodal-open");
+            }, { once: true });
+        }
+        document.getElementById("closePickupQrModal")?.addEventListener("click", closePickupModal);
+        document.getElementById("closePickupQrModal2")?.addEventListener("click", closePickupModal);
+        modalPickup?.addEventListener("click", (e) => { if (e.target === modalPickup) closePickupModal(); });
+
+        // ── Render orders ────────────────────────────────────────
         YCI.apiGet(`/api/booking/id-user=${user.idUser}`)
             .then((response) => {
-                const bookings = YCI.unwrapList(response);
+                const bookings = YCI.unwrapList(response)
+                    .sort((a, b) => Number(b.idBooking) - Number(a.idBooking));
                 const node = YCI.qs("[data-customer-orders]");
                 if (!bookings.length) {
                     node.innerHTML = `<div class="surface empty-state"><i data-lucide="clipboard-list"></i><h3>Chưa có đơn thuê</h3><p>Đơn thuê mới sẽ xuất hiện tại đây sau khi gửi yêu cầu.</p></div>`;
                     YCI.iconRefresh();
                     return;
                 }
+
                 node.innerHTML = bookings.map((booking) => {
-                    const summary = YCI.bookingSummary(booking);
-                    const products = (booking.bookingDetailDTOS || []).map((detail) => detail.productBookingDTO?.nameProduct).filter(Boolean).join(", ");
-                    const canCancel = ["WAITING ACCEPT", "WAITING_ACCEPT", "PENDING", "CHỜ XÁC NHẬN"].includes(String(booking.status || "").toUpperCase());
+                    const summary  = YCI.bookingSummary(booking);
+                    const products = (booking.bookingDetailDTOS || [])
+                        .map(d => d.productBookingDTO?.nameProduct).filter(Boolean).join(", ");
+                    const status   = String(booking.status || "").toUpperCase();
+
+                    // Nút thanh toán cọc QR
+                    const showQR = status === "PENDING_DEPOSIT"
+                        || status === "WAITING ACCEPT" || status === "WAITING_ACCEPT";
+                    const qrBtn = showQR
+                        ? `<button class="button primary" type="button" data-pay-qr="${booking.idBooking}" style="min-height:42px;">
+                               <i data-lucide="qr-code"></i> Thanh toán cọc
+                           </button>`
+                        : "";
+
+                    // Cảnh báo: cần thanh toán cọc để đơn được xác nhận
+                    const depositPaid = (booking.paymentBookingDTOS || [])
+                        .some((p) => (p.paymentStatus || "").toUpperCase() === "PAID");
+                    const depositWarn = (showQR && !depositPaid) ? `
+                        <div class="deposit-notice" style="display:flex;gap:10px;align-items:flex-start;background:#fff8e1;border:1px solid #f3d27a;border-radius:12px;padding:12px 14px;margin-top:4px;">
+                            <i data-lucide="alert-triangle" style="color:#b66a00;flex-shrink:0;margin-top:2px;"></i>
+                            <div style="font-size:13px;color:#8a5300;line-height:1.45;">
+                                <strong style="color:#b66a00;">Cần thanh toán cọc</strong><br>
+                                Đơn sẽ được xác nhận sau khi bạn thanh toán tiền cọc. Nhấn nút "Thanh toán cọc" bên dưới để tiếp tục.
+                            </div>
+                        </div>` : "";
+
+                    // Nút Mã QR nhận máy (đơn đã xác nhận)
+                    const showPickupQR = status === "ACCEPTED" || status === "RENTING";
+                    const pickupBtn = showPickupQR
+                        ? `<button class="button ghost" type="button" data-pickup-qr="${booking.idBooking}"
+                               style="min-height:42px;border-color:rgba(233,30,131,.35);color:var(--teal-dark);font-weight:700;gap:7px;">
+                               <i data-lucide="qr-code" style="width:16px;height:16px;"></i> Mã QR nhận máy
+                           </button>`
+                        : "";
+
+                    // Nút yêu cầu hủy
+                    const canCancel = ["WAITING ACCEPT","WAITING_ACCEPT","PENDING_DEPOSIT","ACCEPTED"].includes(status);
+                    const alreadyRequested = status === "CANCEL_REQUESTED";
+                    const cancelBtn = alreadyRequested
+                        ? `<span class="status-pill sc-waiting" style="font-size:12px;">Đang chờ admin duyệt hủy</span>`
+                        : canCancel
+                            ? `<button class="button ghost" type="button" data-cancel-request="${booking.idBooking}"
+                                       style="min-height:42px;color:var(--danger);border-color:var(--danger);">
+                                   <i data-lucide="x-circle"></i> Yêu cầu hủy
+                               </button>`
+                            : "";
+
+                    // Cảnh báo quá hạn trả máy (đơn RENTING đã qua timeEnd)
+                    const isRenting = status === "RENTING";
+                    const timeEnd   = booking.timeEnd ? new Date(booking.timeEnd) : null;
+                    const now       = new Date();
+                    const isOverdue = isRenting && timeEnd && now > timeEnd;
+                    const overdueMs = isOverdue ? now - timeEnd : 0;
+                    const overdueMins = Math.floor(overdueMs / 60000);
+                    const overdueHours = Math.floor(overdueMs / 3600000);
+                    const overdueLabel = overdueHours > 0
+                        ? `${overdueHours} giờ ${overdueMins % 60} phút`
+                        : `${overdueMins} phút`;
+                    // Tính phí trễ ước tính để hiện trong info-grid
+                    const lateHours = isOverdue ? Math.ceil(overdueMs / 3600000) : 0;
+                    const rentHours = (timeEnd && booking.timeStart)
+                        ? Math.max(1, (new Date(booking.timeEnd) - new Date(booking.timeStart)) / 3600000) : 1;
+                    const feePerHour = Math.round(booking.totalAmount / rentHours / 1000) * 1000;
+                    const estimatedLateFee = lateHours * feePerHour;
+                    const overdueWarn = isOverdue ? `
+                        <div style="
+                            display:flex;gap:12px;align-items:flex-start;
+                            background:linear-gradient(135deg,#fff0f4,#fff5f7);
+                            border:1.5px solid #f87171;
+                            border-left:5px solid #bd1f54;
+                            border-radius:12px;
+                            padding:14px 16px;
+                            margin-top:4px;
+                            box-shadow:0 4px 14px rgba(189,31,84,.12);
+                        ">
+                            <i data-lucide="alarm-clock" style="color:#bd1f54;flex-shrink:0;width:22px;height:22px;margin-top:1px;"></i>
+                            <div style="line-height:1.5;">
+                                <strong style="color:#bd1f54;font-size:14px;display:block;margin-bottom:3px;">
+                                    ⏰ Đã quá hạn trả máy ${overdueLabel}!
+                                </strong>
+                                <span style="font-size:13px;color:#7f1d1d;">
+                                    Thời hạn trả là <strong>${YCI.formatDate(booking.timeEnd)}</strong>.
+                                    Phí phát sinh sẽ được tính theo từng giờ trễ.
+                                    Vui lòng liên hệ cửa hàng ngay.
+                                </span>
+                            </div>
+                        </div>` : "";
+
                     return `
-                        <article class="surface order-card">
-                            <div class="order-head">
-                                <div>
-                                    <p class="eyebrow">Đơn #${booking.idBooking}</p>
-                                    <h2>${YCI.escapeHtml(products || "Đơn thuê thiết bị")}</h2>
-                                    <p class="muted">${YCI.formatDate(booking.timeStart)} - ${YCI.formatDate(booking.timeEnd)}</p>
-                                </div>
+                    <article class="surface order-card${isOverdue ? ' order-card--overdue' : ''}">
+                        ${isOverdue ? `<div style="height:4px;background:linear-gradient(90deg,#bd1f54,#f87171,#bd1f54);border-radius:var(--radius) var(--radius) 0 0;margin:-1px -1px 0;"></div>` : ""}
+                        <div class="order-head">
+                            <div>
+                                <p class="eyebrow">${YCI.escapeHtml(booking.bookingCode || ('#' + booking.idBooking))} · ${YCI.formatDate(booking.createdAt)}</p>
+                                <h2>${YCI.escapeHtml(products || "Đơn thuê thiết bị")}</h2>
+                                <p class="muted">${YCI.formatDate(booking.timeStart)} → ${YCI.formatDate(booking.timeEnd)}</p>
+                            </div>
+                            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
                                 <span class="status-pill ${YCI.statusClass(booking.status)}">${YCI.escapeHtml(YCI.statusLabel(booking.status))}</span>
+                                <button class="button ghost" type="button" data-view-booking="${booking.idBooking}"
+                                    style="font-size:12px;padding:5px 12px;min-height:32px;gap:5px;border-color:var(--line);">
+                                    <i data-lucide="eye" style="width:13px;height:13px;"></i> Xem chi tiết
+                                </button>
                             </div>
-                            <div class="info-grid">
-                                <div class="info-card"><strong>${YCI.money(booking.totalAmount)}</strong><p class="muted">Tổng giá trị</p></div>
-                                <div class="info-card"><strong>${YCI.money(summary.paid)}</strong><p class="muted">Đã thanh toán/cọc</p></div>
-                                <div class="info-card"><strong>${YCI.money(summary.remain)}</strong><p class="muted">Còn lại</p></div>
+                        </div>
+                        <div class="info-grid" style="${isOverdue ? 'grid-template-columns:repeat(4,minmax(0,1fr));' : ''}">
+                            <div class="info-card">
+                                <strong ${isOverdue ? `style="color:#bd1f54;"` : ''}>${YCI.money(isOverdue ? booking.totalAmount + estimatedLateFee : booking.totalAmount)}</strong>
+                                <p class="muted">${isOverdue ? 'Tổng (+ phí trễ)' : 'Tổng giá trị'}</p>
                             </div>
-                            ${canCancel ? `<button class="button ghost" type="button" data-cancel-booking="${booking.idBooking}">Hủy đơn chờ xác nhận</button>` : ""}
-                        </article>
-                    `;
+                            ${isOverdue ? `
+                            <div class="info-card" style="background:#fff0f0;border-color:#ffb3b3;">
+                                <strong style="color:#bd1f54;">${YCI.money(estimatedLateFee)}</strong>
+                                <p class="muted" style="color:#bd1f54;">Phí trễ ~${lateHours}h</p>
+                            </div>` : ''}
+                            <div class="info-card"><strong>${YCI.money(summary.paid)}</strong><p class="muted">Đã cọc / thanh toán</p></div>
+                            <div class="info-card"><strong>${YCI.money(isOverdue ? Math.max(0, booking.totalAmount + estimatedLateFee - summary.paid) : summary.remain)}</strong><p class="muted">Còn lại</p></div>
+                        </div>
+                        ${(() => {
+                            // Hiện thông tin trễ thực tế nếu đơn đã COMPLETED
+                            if (status === "COMPLETED") {
+                                const returnDetails = (booking.bookingDetailDTOS || [])
+                                    .map(d => d.returnDetailDTO).filter(Boolean);
+                                if (returnDetails.length === 0) return '';
+                                const totalLateHours  = returnDetails.reduce((s, r) => s + (r.lateHours  || 0), 0);
+                                const totalLateFee    = returnDetails.reduce((s, r) => s + (r.lateFee    || 0), 0);
+                                const totalCleaning   = returnDetails.reduce((s, r) => s + (r.cleaningFee || 0), 0);
+                                const totalDamage     = returnDetails.reduce((s, r) => s + (r.damageFee  || 0), 0);
+                                const totalExtra      = totalLateFee + totalCleaning + totalDamage;
+                                if (totalExtra === 0) return '';
+                                return `
+                                <div style="display:flex;gap:10px;align-items:flex-start;
+                                    background:#f7fffb;border:1px solid #6ee7b7;
+                                    border-left:4px solid #1c8f65;border-radius:12px;
+                                    padding:12px 14px;margin-top:4px;">
+                                    <i data-lucide="receipt" style="color:#1c8f65;flex-shrink:0;width:18px;height:18px;margin-top:2px;"></i>
+                                    <div style="font-size:13px;line-height:1.55;width:100%;">
+                                        <strong style="color:#065f46;display:block;margin-bottom:6px;">
+                                            Phụ phí ghi nhận khi trả máy
+                                        </strong>
+                                        ${totalLateHours > 0 ? `<div style="display:flex;justify-content:space-between;">
+                                            <span style="color:var(--muted);">Phí trễ (${totalLateHours}h)</span>
+                                            <strong style="color:#bd1f54;">${YCI.money(totalLateFee)}</strong>
+                                        </div>` : ''}
+                                        ${totalCleaning > 0 ? `<div style="display:flex;justify-content:space-between;">
+                                            <span style="color:var(--muted);">Phí vệ sinh</span>
+                                            <strong>${YCI.money(totalCleaning)}</strong>
+                                        </div>` : ''}
+                                        ${totalDamage > 0 ? `<div style="display:flex;justify-content:space-between;">
+                                            <span style="color:var(--muted);">Phí hư hỏng</span>
+                                            <strong>${YCI.money(totalDamage)}</strong>
+                                        </div>` : ''}
+                                        <div style="display:flex;justify-content:space-between;
+                                            padding-top:6px;border-top:1px solid #b7f5d8;margin-top:4px;">
+                                            <strong style="color:#065f46;">Tổng phụ phí</strong>
+                                            <strong style="color:#065f46;">${YCI.money(totalExtra)}</strong>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            }
+                            return '';
+                        })()}
+                        ${overdueWarn}
+                        ${depositWarn}
+                        ${qrBtn || pickupBtn || cancelBtn ? `<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;">${qrBtn}${pickupBtn}${cancelBtn}</div>` : ""}
+                    </article>`;
                 }).join("");
-                node.addEventListener("click", async (event) => {
-                    const button = event.target.closest("[data-cancel-booking]");
-                    if (!button) {
+
+                YCI.iconRefresh();
+
+                // ── Event delegation ─────────────────────────────
+                node.addEventListener("click", async (e) => {
+                    // Xem chi tiết đơn
+                    const viewBtn = e.target.closest("[data-view-booking]");
+                    if (viewBtn) {
+                        const bk = bookings.find(b => String(b.idBooking) === String(viewBtn.dataset.viewBooking));
+                        if (bk) openDetailModal(bk);
                         return;
                     }
-                    try {
-                        await YCI.apiJson(`/api/booking/id=${button.dataset.cancelBooking}/cancel?userId=${user.idUser}`, "PUT", {});
-                        YCI.toast("Đã hủy đơn thuê.", "success");
-                        window.setTimeout(() => window.location.reload(), 500);
-                    } catch (error) {
-                        YCI.toast(error.message, "error");
+
+                    // Thanh toán cọc QR
+                    const payBtn = e.target.closest("[data-pay-qr]");
+                    if (payBtn) {
+                        try {
+                            const qr = await YCI.apiGet(`/api/deposit/qr/${payBtn.dataset.payQr}`);
+                            const data = (qr.data || qr);
+                            if (data.error) { YCI.toast(data.error, "error"); return; }
+                            openQRModal(data);
+                        } catch (err) { YCI.toast(err.message, "error"); }
+                        return;
+                    }
+
+                    // Mã QR nhận máy
+                    const pickupBtnEl = e.target.closest("[data-pickup-qr]");
+                    if (pickupBtnEl) {
+                        const bk = bookings.find(b => String(b.idBooking) === String(pickupBtnEl.dataset.pickupQr));
+                        if (bk) openPickupModal(bk);
+                        return;
+                    }
+
+                    // Yêu cầu hủy
+                    const cancelBtn = e.target.closest("[data-cancel-request]");
+                    if (cancelBtn) {
+                        const bid = cancelBtn.dataset.cancelRequest;
+                        const bk = bookings.find(b => String(b.idBooking) === String(bid));
+                        document.getElementById("cancelBookingId").value = bid;
+                        document.getElementById("cancelModalTitle").textContent = `Hủy đơn ${bookings.find(b => String(b.idBooking) === String(bid))?.bookingCode || ('#' + bid)}`;
+                        document.getElementById("cancelReason").value = "";
+                        document.getElementById("cancelBankName").value = "";
+                        document.getElementById("cancelAccountNo").value = "";
+                        document.getElementById("cancelAccountName").value = "";
+                        modalCancel.hidden = false;
+                        document.body.classList.add("bmodal-open");
+                        requestAnimationFrame(() => modalCancel.classList.add("is-open"));
+                        return;
+                    }
+
+                    // Hủy nhanh (không cọc — backward compat)
+                    const oldCancelBtn = e.target.closest("[data-cancel-booking]");
+                    if (oldCancelBtn) {
+                        try {
+                            await YCI.apiJson(`/api/booking/id=${oldCancelBtn.dataset.cancelBooking}/cancel?userId=${user.idUser}`, "PUT", {});
+                            YCI.toast("Đã hủy đơn thuê.", "success");
+                            setTimeout(() => window.location.reload(), 500);
+                        } catch (err) { YCI.toast(err.message, "error"); }
                     }
                 });
             })

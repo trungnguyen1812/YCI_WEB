@@ -3,6 +3,7 @@ package org.example.yci_web.Service;
 import org.example.yci_web.Model.DTO.ProductDTO;
 import org.example.yci_web.Model.Request.ProductRequest;
 import org.example.yci_web.Model.Request.RentalPriceProductRequest;
+import org.example.yci_web.Model.Request.UpdateProductStatusRequest;
 import org.example.yci_web.Model.Response.DataResponse;
 import org.example.yci_web.Model.Response.MessageResponse;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ public interface ProductService {
     Object getProductById(Long idProduct);
     MessageResponse addProduct(ProductRequest productRequest);
     MessageResponse updateProduct(ProductRequest productRequest);
+    MessageResponse updateProductStatus(UpdateProductStatusRequest request); // toggle active
     MessageResponse deleteProduct(Long idProduct);
     MessageResponse deleteProductImage(Long idProduct, Long idImage);
     MessageResponse addRentalPriceProduct(RentalPriceProductRequest rentalPriceProductRequest);

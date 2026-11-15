@@ -15,18 +15,22 @@
         <a class="button primary" th:href="@{/booking}"><i data-lucide="shopping-bag"></i> Đơn thuê</a>
     </section>
 
-    <section class="toolbar surface catalog-toolbar">
-        <label class="search-field compact-search">
-            <i data-lucide="search"></i>
-            <input data-product-search type="search" placeholder="Tìm tên thiết bị, thương hiệu, số serial">
-        </label>
-        <div class="segmented" data-category-filter></div>
-        <select class="select" data-status-filter aria-label="Lọc tình trạng">
-            <option value="">Tất cả tình trạng</option>
-            <option value="AVAILABLE">Sẵn sàng</option>
-            <option value="RENTED">Đang thuê</option>
-            <option value="MAINTENANCE">Bảo trì</option>
-        </select>
+    <section class="catalog-filter-bar surface">
+        <!-- Hàng 1: search full width -->
+        <div class="catalog-search-wrap">
+            <i data-lucide="search" class="catalog-search-icon"></i>
+            <input data-product-search type="search" placeholder="Tìm tên thiết bị, thương hiệu, số serial...">
+        </div>
+        <!-- Hàng 2: danh mục + trạng thái -->
+        <div class="catalog-filter-row">
+            <div class="segmented" data-category-filter></div>
+            <select class="select catalog-status-select" data-status-filter aria-label="Lọc tình trạng">
+                <option value="">Tất cả tình trạng</option>
+                <option value="AVAILABLE">Sẵn sàng</option>
+                <option value="RENTED">Đang thuê</option>
+                <option value="MAINTENANCE">Bảo trì</option>
+            </select>
+        </div>
     </section>
 
     <section class="catalog-layout">

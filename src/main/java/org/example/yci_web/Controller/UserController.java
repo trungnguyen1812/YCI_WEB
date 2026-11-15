@@ -1,6 +1,7 @@
 package org.example.yci_web.Controller;
 
 import org.example.yci_web.Model.DTO.UserDTO;
+import org.example.yci_web.Model.Request.AdminCreateUserRequest;
 import org.example.yci_web.Model.Request.RegisterRequest;
 import org.example.yci_web.Model.Request.UpdatePasswordRequest;
 import org.example.yci_web.Model.Request.UpdateProfileRequest;
@@ -71,5 +72,17 @@ public class UserController {
         dataPageResponse.setCurrentPage(page);
         dataPageResponse.setStatus(HttpStatus.OK);
         return new ResponseEntity<>(dataPageResponse, HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/api/admin/user")
+    public ResponseEntity<Object> createUser(@RequestBody AdminCreateUserRequest request) {
+        MessageResponse response = userService.createUser(request);
+        return new ResponseEntity<>(response, response.getStatus());
+    }
+
+    @DeleteMapping(value = "/api/admin/user/id={idUser}")
+    public ResponseEntity<Object> deleteUser(@PathVariable("idUser") Long idUser) {
+        MessageResponse response = userService.deleteUser(idUser);
+        return new ResponseEntity<>(response, response.getStatus());
     }
 }

@@ -3,6 +3,7 @@ package org.example.yci_web.Controller;
 import org.example.yci_web.Model.DTO.BookingDTO;
 import org.example.yci_web.Model.Request.AcceptBookingRequest;
 import org.example.yci_web.Model.Request.BookingRequest;
+import org.example.yci_web.Model.Request.CompleteBookingRequest;
 import org.example.yci_web.Model.Request.UpdateStatusBookingRequest;
 import org.example.yci_web.Model.Response.DataPageResponse;
 import org.example.yci_web.Model.Response.MessageResponse;
@@ -12,7 +13,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 public class BookingController {
@@ -20,7 +20,7 @@ public class BookingController {
     BookingService bookingService;
 
     @PostMapping(value = "/api/booking")
-    public ResponseEntity<Object> booking(@ModelAttribute BookingRequest bookingRequest) {
+    public ResponseEntity<Object> booking(@RequestBody BookingRequest bookingRequest) {
         MessageResponse messageResponse = bookingService.Booking(bookingRequest);
         return new ResponseEntity<>(messageResponse, messageResponse.getStatus());
     }
@@ -46,6 +46,12 @@ public class BookingController {
     @PutMapping(value = "/api/admin/booking/status")
     public ResponseEntity<Object> updateBookingStatus(@RequestBody UpdateStatusBookingRequest updateStatusBookingRequest) {
         MessageResponse messageResponse = bookingService.updateStatusBooking(updateStatusBookingRequest);
+        return new ResponseEntity<>(messageResponse, messageResponse.getStatus());
+    }
+
+    @PutMapping(value = "/api/admin/booking/complete")
+    public ResponseEntity<Object> completeBooking(@RequestBody CompleteBookingRequest request) {
+        MessageResponse messageResponse = bookingService.completeBooking(request);
         return new ResponseEntity<>(messageResponse, messageResponse.getStatus());
     }
 

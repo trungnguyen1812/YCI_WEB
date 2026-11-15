@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body th:attr="data-page=${pageName}">
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+<section th:replace="~{fragments/layout :: flash}"></section>
+
+<main class="admin-layout">
+    <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
+    <section class="admin-content">
+
+        <div class="admin-heading">
+            <div>
+                <p class="eyebrow">Hủy đơn &amp; Hoàn tiền</p>
+                <h1>Yêu cầu hủy &amp; Hoàn tiền thủ công</h1>
+                <p>Duyệt yêu cầu hủy, xác nhận hoàn tiền sau khi tự chuyển khoản.</p>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <section class="admin-tabs" id="refundTabs">
+            <button class="admin-tab is-active" type="button" data-refund-tab="cancellations">
+                <span>Yêu cầu hủy</span>
+                <strong id="cancelCount">0</strong>
+            </button>
+            <button class="admin-tab" type="button" data-refund-tab="refunds">
+                <span>Chờ chuyển khoản hoàn</span>
+                <strong id="refundCount">0</strong>
+            </button>
+            <button class="admin-tab" type="button" data-refund-tab="history">
+                <span>Lịch sử hoàn tiền</span>
+                <strong></strong>
+            </button>
+        </section>
+
+        <!-- Cancellations tab -->
+        <div id="tabCancellations">
+            <div class="surface table-wrap" style="padding:0;overflow:hidden;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mã YC</th>
+                            <th>Đơn</th>
+                            <th>Khách hàng</th>
+                            <th>Lý do</th>
+                            <th>TK nhận hoàn</th>
+                            <th>Đã cọc</th>
+                            <th>Trạng thái</th>
+                            <th style="width:100px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cancelTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Refunds pending tab -->
+        <div id="tabRefunds" hidden>
+            <div class="surface" style="background:#fff8e1;border:1px solid rgba(182,106,0,.22);border-radius:12px;padding:14px 18px;margin-bottom:16px;font-size:13px;color:#b66a00;">
+                <strong>⚠️ Quan trọng:</strong> Bạn cần <strong>tự chuyển khoản</strong> bằng ứng dụng ngân hàng trước,
+                rồi mới nhấn <strong>"Xác nhận đã chuyển khoản"</strong>. Hệ thống KHÔNG tự động chuyển tiền.
+            </div>
+            <div class="surface table-wrap" style="padding:0;overflow:hidden;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mã hoàn</th>
+                            <th>Đơn</th>
+                            <th>Khách</th>
+                            <th>TK nhận hoàn</th>
+                            <th>Số tiền duyệt</th>
+                            <th>Trạng thái</th>
+                            <th style="width:130px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="refundTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- History tab -->
+        <div id="tabHistory" hidden>
+            <div class="surface table-wrap" style="padding:0;overflow:hidden;">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Mã hoàn</th>
+                            <th>Đơn</th>
+                            <th>Khách</th>
+                            <th>Số tiền thực hoàn</th>
+                            <th>Mã GD ngân hàng</th>
+                            <th>Thời gian</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </section>
+</main>
+
+<!-- Modal: Duyệt hủy -->
+<div class="pmodal-overlay" id="modalApprove" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:500px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Duyệt yêu cầu hủy</p>
+                <h2 id="approveModalTitle">Xác nhận duyệt</h2>
+            </div>
+            <button class="bmodal-close" type="button" data-close-approve aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body">
+            <form id="formApprove">
+                <input type="hidden" id="approveCancelId">
+                <div id="approveInfoBox" style="background:#fff7fb;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--line);font-size:13px;"></div>
+                <div class="pform-field" style="margin-bottom:14px;">
+                    <label>Số tiền hoàn (đ) — để trống nếu không hoàn</label>
+                    <input id="approveRefundAmount" type="text" inputmode="numeric" placeholder="0" data-money-input>
+                </div>
+                <div class="pform-field" style="margin-bottom:16px;">
+                    <label>Ghi chú cho khách</label>
+                    <textarea id="approveAdminNote" rows="2" placeholder="Lý do, điều kiện..."></textarea>
+                </div>
+                <div class="pmodal-footer" style="padding:14px 0 0;">
+                    <button class="button ghost" type="button" data-close-approve>Hủy</button>
+                    <button class="button danger" type="button" id="btnReject">
+                        <i data-lucide="x-circle"></i> Từ chối
+                    </button>
+                    <button class="button primary" type="submit" id="btnApprove">
+                        <i data-lucide="check-circle"></i> Duyệt hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Xác nhận đã chuyển khoản hoàn tiền -->
+<div class="pmodal-overlay" id="modalConfirmRefund" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:480px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Xác nhận hoàn tiền</p>
+                <h2>Xác nhận đã chuyển khoản</h2>
+            </div>
+            <button class="bmodal-close" type="button" data-close-confirm-refund aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body">
+            <div style="background:#fff8e1;border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(182,106,0,.22);font-size:13px;color:#b66a00;">
+                Bạn cần <strong>tự chuyển khoản bằng ứng dụng ngân hàng</strong> trước khi xác nhận tại đây.
+            </div>
+            <div id="confirmRefundInfo" style="font-size:13px;background:#fff7fb;border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--line);"></div>
+            <form id="formConfirmRefund">
+                <input type="hidden" id="confirmRefundId">
+                <div class="pform-grid" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+                    <div class="pform-field span2">
+                        <label>Số tiền thực đã chuyển (đ) <span class="required-mark">*</span></label>
+                        <input id="confirmActualAmount" type="text" inputmode="numeric" required data-money-input>
+                    </div>
+                    <div class="pform-field span2">
+                        <label>Mã tham chiếu giao dịch ngân hàng <span class="required-mark">*</span></label>
+                        <input id="confirmTransferRef" placeholder="Vd: FT12345678" required>
+                    </div>
+                    <div class="pform-field span2">
+                        <label>Ghi chú</label>
+                        <textarea id="confirmTransferNote" rows="2" placeholder="Thông tin bổ sung..."></textarea>
+                    </div>
+                </div>
+                <div class="pmodal-footer" style="padding:14px 0 0;">
+                    <button class="button ghost" type="button" data-close-confirm-refund>Hủy</button>
+                    <button class="button danger" type="button" id="btnMarkFailed">
+                        <i data-lucide="alert-triangle"></i> Thất bại
+                    </button>
+                    <button class="button success" type="submit">
+                        <i data-lucide="check-circle"></i> Xác nhận đã chuyển khoản
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

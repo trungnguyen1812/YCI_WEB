@@ -8,56 +8,148 @@
 <main class="admin-layout">
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <section class="admin-content">
+
+        <!-- ── Heading ── -->
         <div class="admin-heading">
             <div>
-                <p class="eyebrow">Quản trị</p>
+                <p class="eyebrow">Quản trị hệ thống</p>
                 <h1>Tổng quan vận hành YCI</h1>
+                <p>Theo dõi kho thiết bị, đơn thuê và doanh thu theo thời gian thực.</p>
             </div>
-            <a class="button primary" th:href="@{/admin/bookings}"><i data-lucide="clipboard-check"></i> Xử lý đơn</a>
+            <a class="button primary" th:href="@{/admin/bookings}" style="flex-shrink:0;margin-top:6px;">
+                <i data-lucide="clipboard-check"></i> Xử lý đơn
+            </a>
         </div>
 
-        <section class="metric-grid">
+        <!-- ── KPI cards ── -->
+        <section class="metric-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));">
             <article class="metric-card">
                 <span>Thiết bị</span>
-                <strong data-admin-products>0</strong>
-                <small>Trong kho cho thuê</small>
+                <strong data-admin-products>—</strong>
+                <small><i data-lucide="package" style="width:12px;height:12px;margin-right:4px;"></i>Trong kho cho thuê</small>
             </article>
             <article class="metric-card">
                 <span>Đơn thuê</span>
-                <strong data-admin-bookings>0</strong>
-                <small>Đang theo dõi</small>
+                <strong data-admin-bookings>—</strong>
+                <small><i data-lucide="calendar" style="width:12px;height:12px;margin-right:4px;"></i>Đang theo dõi</small>
             </article>
             <article class="metric-card">
                 <span>Khách hàng</span>
-                <strong data-admin-users>0</strong>
-                <small>Tài khoản hệ thống</small>
+                <strong data-admin-users>—</strong>
+                <small><i data-lucide="users" style="width:12px;height:12px;margin-right:4px;"></i>Tài khoản hệ thống</small>
             </article>
             <article class="metric-card">
-                <span>Doanh thu ghi nhận</span>
-                <strong data-admin-revenue>0 d</strong>
-                <small>Từ các thanh toán đơn thuê</small>
+                <span>Doanh thu</span>
+                <strong data-admin-revenue>—</strong>
+                <small><i data-lucide="trending-up" style="width:12px;height:12px;margin-right:4px;"></i>Từ các thanh toán</small>
             </article>
         </section>
 
-        <section class="ops-grid">
+        <!-- ── Charts row ── -->
+        <section class="dashboard-charts">
+
+            <!-- Revenue line chart -->
+            <div class="surface dash-chart-card dash-chart-main">
+                <div class="dash-chart-header">
+                    <div>
+                        <p class="eyebrow">Tài chính</p>
+                        <h2>Doanh thu 30 ngày gần nhất</h2>
+                    </div>
+                    <div class="dash-chart-legend">
+                        <span class="legend-dot" style="background:#e91e83;"></span>Doanh thu (đ)
+                    </div>
+                </div>
+                <div class="dash-chart-wrap">
+                    <canvas id="chartRevenue"></canvas>
+                </div>
+            </div>
+
+            <!-- Doughnut equipment status -->
+            <div class="surface dash-chart-card dash-chart-side">
+                <div class="dash-chart-header">
+                    <div>
+                        <p class="eyebrow">Kho thiết bị</p>
+                        <h2>Tình trạng sử dụng</h2>
+                    </div>
+                </div>
+                <div class="dash-chart-wrap dash-chart-donut-wrap">
+                    <canvas id="chartEquipment"></canvas>
+                </div>
+                <div class="donut-legend" id="donutLegend"></div>
+            </div>
+
+        </section>
+
+        <!-- ── Second chart row ── -->
+        <section class="dashboard-charts">
+
+            <!-- Bar chart — bookings per month -->
+            <div class="surface dash-chart-card" style="flex:1.4;">
+                <div class="dash-chart-header">
+                    <div>
+                        <p class="eyebrow">Hoạt động</p>
+                        <h2>Đơn thuê theo tháng</h2>
+                    </div>
+                    <div class="dash-chart-legend">
+                        <span class="legend-dot" style="background:#4f6fae;"></span>Số đơn
+                    </div>
+                </div>
+                <div class="dash-chart-wrap">
+                    <canvas id="chartBookings"></canvas>
+                </div>
+            </div>
+
+            <!-- Mini stats column -->
+            <div class="surface dash-chart-card dash-mini-stats" style="flex:0.6;">
+                <div class="dash-chart-header">
+                    <div>
+                        <p class="eyebrow">Nhanh</p>
+                        <h2>Thống kê nhanh</h2>
+                    </div>
+                </div>
+                <div class="mini-stat-list" id="miniStatList">
+                    <div class="mini-stat-item loading-pulse">
+                        <span></span><strong></strong>
+                    </div>
+                    <div class="mini-stat-item loading-pulse">
+                        <span></span><strong></strong>
+                    </div>
+                    <div class="mini-stat-item loading-pulse">
+                        <span></span><strong></strong>
+                    </div>
+                    <div class="mini-stat-item loading-pulse">
+                        <span></span><strong></strong>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ── Quick nav ── -->
+        <section class="ops-grid" style="grid-template-columns:repeat(4,minmax(0,1fr));">
             <a class="ops-card" th:href="@{/admin/products}">
                 <i data-lucide="boxes"></i>
-                <span>Quản lý danh mục, máy ảnh, ống kính, đèn flash và phụ kiện</span>
+                <strong>Thiết bị</strong>
+                <span>Danh mục, máy ảnh, ống kính, đèn flash và phụ kiện</span>
             </a>
             <a class="ops-card" th:href="@{/admin/bookings}">
                 <i data-lucide="calendar-range"></i>
-                <span>Theo dõi đơn thuê, lịch đặt và tình trạng sử dụng thiết bị</span>
+                <strong>Đơn thuê</strong>
+                <span>Theo dõi lịch đặt và tình trạng sử dụng thiết bị</span>
             </a>
             <a class="ops-card" th:href="@{/admin/customers}">
                 <i data-lucide="user-cog"></i>
-                <span>Quản lý tài khoản người dùng, khách hàng và phân quyền</span>
+                <strong>Khách hàng</strong>
+                <span>Tài khoản người dùng, khách hàng và phân quyền</span>
             </a>
             <a class="ops-card" th:href="@{/admin/finance}">
                 <i data-lucide="chart-column"></i>
-                <span>Thống kê doanh thu theo ngày, tháng, năm và thanh toán</span>
+                <strong>Tài chính</strong>
+                <span>Thống kê doanh thu theo ngày, tháng, năm</span>
             </a>
         </section>
 
+        <!-- ── Recent bookings + status ── -->
         <section class="admin-grid two">
             <div class="surface">
                 <div class="section-heading tight">
@@ -65,19 +157,36 @@
                         <p class="eyebrow">Đơn mới</p>
                         <h2>Yêu cầu cần xử lý</h2>
                     </div>
+                    <a class="button ghost" style="font-size:13px;min-height:34px;padding:6px 12px;" th:href="@{/admin/bookings}">
+                        Xem tất cả <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+                    </a>
                 </div>
-                <div class="compact-list" data-dashboard-bookings></div>
+                <div class="compact-list" data-dashboard-bookings>
+                    <div class="empty-state small">
+                        <i data-lucide="inbox"></i>
+                        <p>Đang tải dữ liệu...</p>
+                    </div>
+                </div>
             </div>
             <div class="surface">
                 <div class="section-heading tight">
                     <div>
                         <p class="eyebrow">Kho thiết bị</p>
-                        <h2>Tình trạng sử dụng</h2>
+                        <h2>Tình trạng chi tiết</h2>
+                    </div>
+                    <a class="button ghost" style="font-size:13px;min-height:34px;padding:6px 12px;" th:href="@{/admin/products}">
+                        Xem kho <i data-lucide="arrow-right" style="width:14px;height:14px;"></i>
+                    </a>
+                </div>
+                <div class="status-stack" data-dashboard-status>
+                    <div class="empty-state small">
+                        <i data-lucide="package-search"></i>
+                        <p>Đang tải dữ liệu...</p>
                     </div>
                 </div>
-                <div class="status-stack" data-dashboard-status></div>
             </div>
         </section>
+
     </section>
 </main>
 

@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class BookingDTO {
     private Long idBooking;
+    private String bookingCode;
     @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime timeStart;
     @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss")
@@ -27,6 +28,5 @@ public class BookingDTO {
     private List<BookingDetailDTO> bookingDetailDTOS;
     private DepositTypeDTO depositTypeDTO;
     private UserBookingDTO userBookingDTO;
-    private DocumentBookingDTO documentBookingDTO;
     private List<PaymentBookingDTO> paymentBookingDTOS;
 }

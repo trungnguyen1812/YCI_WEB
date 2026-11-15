@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body th:attr="data-page=${pageName}">
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+<section th:replace="~{fragments/layout :: flash}"></section>
+
+<main class="auth-split-bg">
+    <div class="auth-split-card">
+
+        <!-- LEFT: branding -->
+        <div class="auth-split-left">
+            <div class="brand-icon">
+                <img th:src="@{/images/logo.png}" alt="YCI">
+            </div>
+            <div class="brand-copy">
+                <h2>Một bước<br>nữa thôi!</h2>
+                <p>Hoàn tất thông tin để có thể đặt thuê thiết bị. Chúng tôi cần số điện thoại để liên hệ khi cần.</p>
+            </div>
+            <div class="brand-social">
+                <div class="avatar-stack">
+                    <span>N</span><span>T</span><span>H</span>
+                    <span class="more">+8k</span>
+                </div>
+                <p>Đã tham gia &amp; giao dịch tin cậy mỗi ngày.</p>
+            </div>
+        </div>
+
+        <!-- RIGHT: form -->
+        <div class="auth-split-right">
+            <div style="margin-bottom:24px;">
+                <p class="eyebrow">Tài khoản Google</p>
+                <h2 style="font-size:22px;font-weight:800;margin:0 0 6px;">Hoàn tất hồ sơ</h2>
+                <p style="color:var(--muted);font-size:14px;">
+                    Xin chào <strong th:text="${currentUser.fullName}">bạn</strong>!
+                    Vui lòng bổ sung thông tin bắt buộc để tiếp tục.
+                </p>
+            </div>
+
+            <form th:action="@{/complete-profile}" method="post" style="display:grid;gap:16px;">
+                <input type="hidden" name="idUser" th:value="${currentUser.idUser}">
+                <input type="hidden" name="email" th:value="${currentUser.email}">
+                <input type="hidden" name="fullName" th:value="${currentUser.fullName}">
+                <input type="hidden" name="address" th:value="${currentUser.address}">
+                <input type="hidden" name="cccd" th:value="${currentUser.cccd}">
+
+                <!-- Email (readonly, từ Google) -->
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">
+                        Email <span style="color:#1c8f65;font-size:10px;">(từ Google)</span>
+                    </span>
+                    <input type="email" th:value="${currentUser.email}" readonly
+                           style="background:#f8f3f6;color:var(--muted);cursor:not-allowed;">
+                </label>
+
+                <!-- Số điện thoại (bắt buộc) -->
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">
+                        Số điện thoại <span class="required-mark">*</span>
+                    </span>
+                    <input name="phone" type="tel" inputmode="numeric"
+                           th:value="${currentUser.phone}"
+                           pattern="[0-9]{10}" minlength="10" maxlength="10"
+                           placeholder="0912 345 678" required
+                           oninvalid="this.setCustomValidity(this.validity.valueMissing ? 'Vui lòng nhập số điện thoại!' : 'Số điện thoại phải gồm đúng 10 chữ số!')"
+                           oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,10);this.setCustomValidity('')">
+                </label>
+
+                <!-- Họ tên (có thể chỉnh) -->
+                <label style="display:grid;gap:6px;">
+                    <span style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">
+                        Họ và tên
+                    </span>
+                    <input name="fullName" type="text" th:value="${currentUser.fullName}" required>
+                </label>
+
+                <button class="button primary full" type="submit" style="min-height:48px;">
+                    <i data-lucide="check-circle"></i> Hoàn tất &amp; Tiếp tục
+                </button>
+            </form>
+
+            <p style="font-size:13px;color:var(--muted);text-align:center;margin-top:16px;">
+                Bạn có thể cập nhật thêm thông tin trong
+                <a th:href="@{/profile}" style="color:var(--teal);font-weight:600;">trang hồ sơ</a>.
+            </p>
+        </div>
+
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

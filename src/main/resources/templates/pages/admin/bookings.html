@@ -8,51 +8,82 @@
 <main class="admin-layout">
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <section class="admin-content">
+
         <div class="admin-heading">
             <div>
-                <p class="eyebrow">Đơn thuê</p>
-                <h1>Quản lý đơn thuê và lịch đặt thiết bị</h1>
-                <p>Theo dõi khách hàng, thiết bị, giấy tờ thế chấp, tiền cọc và các bước nhận trả.</p>
+                <p class="eyebrow">Quản lý đơn thuê</p>
+                <h1>Danh sách đơn thuê &amp; lịch đặt</h1>
+                <p>Nhấn vào một đơn để xem chi tiết, xác nhận, cập nhật trạng thái hoặc ghi nhận trả.</p>
             </div>
-            <button class="button ghost" type="button" data-refresh-admin-bookings><i data-lucide="refresh-cw"></i> Tải lại</button>
+            <button class="button ghost" type="button" data-refresh-admin-bookings style="flex-shrink:0;margin-top:6px;">
+                <i data-lucide="refresh-cw"></i> Tải lại
+            </button>
         </div>
 
-        <section class="toolbar surface">
-            <label class="search-field">
-                <i data-lucide="search"></i>
-                <input data-admin-booking-search type="search" placeholder="Tìm mã đơn, tên khách, số điện thoại">
-            </label>
+        <!-- Status tabs -->
+        <section class="admin-tabs" data-booking-status-tabs></section>
+
+        <!-- Toolbar -->
+        <section class="toolbar">
+            <div class="toolbar-search">
+                <i data-lucide="search" class="toolbar-search-icon"></i>
+                <input data-admin-booking-search type="search" placeholder="Tìm mã đơn, tên khách, số điện thoại...">
+            </div>
             <select class="select" data-admin-booking-status>
                 <option value="">Tất cả trạng thái</option>
             </select>
         </section>
-        <section class="admin-tabs surface" data-booking-status-tabs></section>
 
-        <section class="admin-grid bookings">
-            <div class="surface table-wrap">
-                <table class="data-table">
-                    <thead>
+        <!-- Full-width table -->
+        <div class="surface table-wrap" style="padding:0;overflow:hidden;">
+            <table class="data-table bookings-table">
+                <thead>
                     <tr>
-                        <th>Đơn</th>
+                        <th style="width:100px;">Mã đơn</th>
                         <th>Khách hàng</th>
                         <th>Lịch thuê</th>
+                        <th>Thiết bị</th>
                         <th>Giá trị</th>
                         <th>Trạng thái</th>
+                        <th style="width:60px;"></th>
                     </tr>
-                    </thead>
-                    <tbody data-admin-bookings-table></tbody>
-                </table>
-            </div>
-            <aside class="surface inspector" data-booking-inspector>
-                <div class="empty-state small">
-                    <i data-lucide="mouse-pointer-click"></i>
-                    <h3>Chọn một đơn thuê</h3>
-                    <p>Chi tiết khách hàng, giấy tờ, cọc và thiết bị sẽ hiển thị tại đây.</p>
-                </div>
-            </aside>
-        </section>
+                </thead>
+                <tbody data-admin-bookings-table></tbody>
+            </table>
+            <div class="pg-bar" id="pgBookings"></div>
+        </div>
+
     </section>
 </main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BOOKING DETAIL MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div class="bmodal-overlay" id="bookingModal" aria-modal="true" role="dialog" aria-labelledby="bmodalTitle" hidden>
+    <div class="bmodal-box">
+
+        <!-- Modal header -->
+        <div class="bmodal-header">
+            <div class="bmodal-title-group">
+                <p class="eyebrow" id="bmodalEyebrow">Chi tiết đơn thuê</p>
+                <h2 id="bmodalTitle">—</h2>
+            </div>
+            <div class="bmodal-header-meta" id="bmodalMeta"></div>
+            <button class="bmodal-close" type="button" id="bmodalClose" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <!-- Modal body — scrollable -->
+        <div class="bmodal-body" id="bmodalBody">
+            <div class="empty-state small">
+                <i data-lucide="loader"></i>
+                <p>Đang tải...</p>
+            </div>
+        </div>
+
+    </div>
+</div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
 </body>

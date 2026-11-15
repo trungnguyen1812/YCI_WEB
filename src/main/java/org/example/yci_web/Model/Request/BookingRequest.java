@@ -1,11 +1,11 @@
 package org.example.yci_web.Model.Request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,8 +15,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class BookingRequest {
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime timeStart;
+    @JsonFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime timeEnd;
     private String note;
@@ -24,8 +26,4 @@ public class BookingRequest {
     private Double totalAmount;
     private Long idRentalType;
     private List<Long> productIds;
-    private String documentType;
-    private String documentNumber;
-    private MultipartFile imageFront;
-    private MultipartFile imageBack;
 }

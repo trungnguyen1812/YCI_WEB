@@ -18,6 +18,9 @@ public class BookingEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idBooking;
 
+    @Column(name = "booking_code", unique = true, length = 20)
+    private String bookingCode;
+
     @Column(name = "time_start")
     @DateTimeFormat(pattern = "dd-MM-yyyy HH:mm:ss")
     private LocalDateTime timeStart;
@@ -50,11 +53,6 @@ public class BookingEntity {
 
     @OneToMany(mappedBy = "bookingEntity", fetch = FetchType.LAZY, cascade = {CascadeType.ALL}, orphanRemoval = true)
     private List<BookingDetailEntity> bookingDetailEntities = new ArrayList<>();
-
-    @OneToOne(mappedBy = "bookingEntity",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true)
-    private DocumentsEntity documentsEntity;
 
     @OneToMany(mappedBy = "bookingEntity", fetch = FetchType.LAZY, cascade = {CascadeType.ALL}, orphanRemoval = true)
     private List<PaymentBookingEntity> paymentBookingEntities = new ArrayList<>();

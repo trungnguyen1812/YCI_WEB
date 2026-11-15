@@ -6,6 +6,7 @@ import org.example.yci_web.Model.DTO.ProductDTO;
 import org.example.yci_web.Model.DTO.RentalPriceDTO;
 import org.example.yci_web.Model.Request.ProductRequest;
 import org.example.yci_web.Model.Request.RentalPriceProductRequest;
+import org.example.yci_web.Model.Request.UpdateProductStatusRequest;
 import org.example.yci_web.Model.Response.DataResponse;
 import org.example.yci_web.Model.Response.MessageResponse;
 import org.example.yci_web.Repository.*;
@@ -44,84 +45,66 @@ public class ProductServiceImpl implements ProductService {
     @Autowired
     ModelMapper modelMapper;
 
+    // ── Helper: map ProductEntity → ProductDTO ──────────────────
+    private ProductDTO toProductDTO(ProductEntity p) {
+        ProductDTO dto = new ProductDTO();
+        modelMapper.map(p, dto);
+        dto.setCategoryId(p.getCategoryEntity().getIdCategory());
+        dto.setCategoryName(p.getCategoryEntity().getNameCategory());
+        dto.setStatus(p.getStatusEntity().getStatusCode());
+        dto.setActive(p.getActive() == null ? true : p.getActive());
+
+        List<ImageDTO> imageDTOS = new ArrayList<>();
+        for (ImageEntity img : p.getImageEntities()) {
+            ImageDTO imageDTO = new ImageDTO();
+            imageDTO.setIdImage(img.getIdImage());
+            imageDTO.setImageBase64(ConvertByteToBase64.toBase64(img.getImage()));
+            imageDTOS.add(imageDTO);
+        }
+        dto.setImageDTOS(imageDTOS);
+
+        List<RentalPriceDTO> priceDTOS = new ArrayList<>();
+        for (RentalPriceEntity rp : p.getRentailPriceEntities()) {
+            RentalPriceDTO priceDTO = new RentalPriceDTO();
+            modelMapper.map(rp, priceDTO);
+            priceDTO.setRentalType(rp.getRentalTypeEntity().getType());
+            priceDTOS.add(priceDTO);
+        }
+        dto.setRentalPriceDTOS(priceDTOS);
+
+        return dto;
+    }
+
     @Override
     public Page<ProductDTO> getAllProducts(Integer page) {
+        // Admin: trả tất cả (bao gồm inactive)
         Pageable pageable = PageRequest.of(page - 1, 10);
         Page<ProductEntity> productEntities = productRepository.findAll(pageable);
-        List<ProductDTO> productDTOS = new ArrayList<>();
-        for (ProductEntity productEntity : productEntities) {
-            ProductDTO productDTO = new ProductDTO();
-            modelMapper.map(productEntity, productDTO);
-            productDTO.setCategoryId(productEntity.getCategoryEntity().getIdCategory());
-            productDTO.setCategoryName(productEntity.getCategoryEntity().getNameCategory());
-            productDTO.setStatus(productEntity.getStatusEntity().getStatusCode());
-
-            List<ImageDTO> imageDTOS = new ArrayList<>();
-            for (ImageEntity imageEntity : productEntity.getImageEntities()) {
-                ImageDTO imageDTO = new ImageDTO();
-                imageDTO.setIdImage(imageEntity.getIdImage());
-                imageDTO.setImageBase64(ConvertByteToBase64.toBase64(imageEntity.getImage()));
-                imageDTOS.add(imageDTO);
-            }
-            productDTO.setImageDTOS(imageDTOS);
-
-            List<RentalPriceDTO> rentalPriceDTOS = new ArrayList<>();
-            for (RentalPriceEntity rentalPriceEntity : productEntity.getRentailPriceEntities()) {
-                RentalPriceDTO rentalPriceDTO = new RentalPriceDTO();
-                modelMapper.map(rentalPriceEntity, rentalPriceDTO);
-                rentalPriceDTO.setRentalType(rentalPriceEntity.getRentalTypeEntity().getType());
-                rentalPriceDTOS.add(rentalPriceDTO);
-            }
-            productDTO.setRentalPriceDTOS(rentalPriceDTOS);
-
-            productDTOS.add(productDTO);
-        }
-        return new PageImpl<>(productDTOS, productEntities.getPageable(), productEntities.getTotalElements());
+        List<ProductDTO> dtos = productEntities.getContent().stream()
+                .map(this::toProductDTO).collect(java.util.stream.Collectors.toList());
+        return new PageImpl<>(dtos, productEntities.getPageable(), productEntities.getTotalElements());
     }
 
     @Override
     public DataResponse getAllProducts() {
-        List<ProductEntity> productEntities = productRepository.findAll();
-        List<ProductDTO> productDTOS = new ArrayList<>();
+        // Public: chỉ trả sản phẩm đang active
         DataResponse dataResponse = new DataResponse();
-        for (ProductEntity productEntity : productEntities) {
-            ProductDTO productDTO = new ProductDTO();
-            modelMapper.map(productEntity, productDTO);
-            productDTO.setCategoryId(productEntity.getCategoryEntity().getIdCategory());
-            productDTO.setCategoryName(productEntity.getCategoryEntity().getNameCategory());
-            productDTO.setStatus(productEntity.getStatusEntity().getStatusCode());
-
-            List<ImageDTO> imageDTOS = new ArrayList<>();
-            for (ImageEntity imageEntity : productEntity.getImageEntities()) {
-                ImageDTO imageDTO = new ImageDTO();
-                imageDTO.setIdImage(imageEntity.getIdImage());
-                imageDTO.setImageBase64(ConvertByteToBase64.toBase64(imageEntity.getImage()));
-                imageDTOS.add(imageDTO);
-            }
-            productDTO.setImageDTOS(imageDTOS);
-
-            List<RentalPriceDTO> rentalPriceDTOS = new ArrayList<>();
-            for (RentalPriceEntity rentalPriceEntity : productEntity.getRentailPriceEntities()) {
-                RentalPriceDTO rentalPriceDTO = new RentalPriceDTO();
-                modelMapper.map(rentalPriceEntity, rentalPriceDTO);
-                rentalPriceDTO.setRentalType(rentalPriceEntity.getRentalTypeEntity().getType());
-                rentalPriceDTOS.add(rentalPriceDTO);
-            }
-            productDTO.setRentalPriceDTOS(rentalPriceDTOS);
-
-            productDTOS.add(productDTO);
-        }
+        List<ProductDTO> dtos = productRepository.findAll().stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .map(this::toProductDTO)
+                .collect(java.util.stream.Collectors.toList());
         dataResponse.setMessage("Success");
-        dataResponse.setData(productDTOS);
+        dataResponse.setData(dtos);
         dataResponse.setStatus(HttpStatus.OK);
         return dataResponse;
     }
 
     @Override
     public Object getAllProductsByCategory(Long idCategory) {
+        // Public: chỉ trả sản phẩm đang active
         MessageResponse messageResponse = new MessageResponse();
         DataResponse dataResponse = new DataResponse();
-        CategoryEntity categoryEntity = null;
+        CategoryEntity categoryEntity;
         try {
             categoryEntity = categoryRepository.findById(idCategory).get();
         } catch (NoSuchElementException ex) {
@@ -129,37 +112,12 @@ public class ProductServiceImpl implements ProductService {
             messageResponse.setStatus(HttpStatus.NOT_FOUND);
             return messageResponse;
         }
-        List<ProductEntity> productEntities = productRepository.findByCategoryEntity(categoryEntity);
-        List<ProductDTO> productDTOS = new ArrayList<>();
-        for (ProductEntity productEntity : productEntities) {
-            ProductDTO productDTO = new ProductDTO();
-            modelMapper.map(productEntity, productDTO);
-            productDTO.setCategoryId(productEntity.getCategoryEntity().getIdCategory());
-            productDTO.setCategoryName(productEntity.getCategoryEntity().getNameCategory());
-            productDTO.setStatus(productEntity.getStatusEntity().getStatusCode());
-
-            List<ImageDTO> imageDTOS = new ArrayList<>();
-            for (ImageEntity imageEntity : productEntity.getImageEntities()) {
-                ImageDTO imageDTO = new ImageDTO();
-                imageDTO.setIdImage(imageEntity.getIdImage());
-                imageDTO.setImageBase64(ConvertByteToBase64.toBase64(imageEntity.getImage()));
-                imageDTOS.add(imageDTO);
-            }
-            productDTO.setImageDTOS(imageDTOS);
-
-            List<RentalPriceDTO> rentalPriceDTOS = new ArrayList<>();
-            for (RentalPriceEntity rentalPriceEntity : productEntity.getRentailPriceEntities()) {
-                RentalPriceDTO rentalPriceDTO = new RentalPriceDTO();
-                modelMapper.map(rentalPriceEntity, rentalPriceDTO);
-                rentalPriceDTO.setRentalType(rentalPriceEntity.getRentalTypeEntity().getType());
-                rentalPriceDTOS.add(rentalPriceDTO);
-            }
-            productDTO.setRentalPriceDTOS(rentalPriceDTOS);
-
-            productDTOS.add(productDTO);
-        }
+        List<ProductDTO> dtos = productRepository.findByCategoryEntity(categoryEntity).stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActive()))
+                .map(this::toProductDTO)
+                .collect(java.util.stream.Collectors.toList());
         dataResponse.setMessage("Success");
-        dataResponse.setData(productDTOS);
+        dataResponse.setData(dtos);
         dataResponse.setStatus(HttpStatus.OK);
         return dataResponse;
     }
@@ -170,32 +128,8 @@ public class ProductServiceImpl implements ProductService {
         DataResponse dataResponse = new DataResponse();
         try {
             ProductEntity productEntity = productRepository.findById(idProduct).get();
-            ProductDTO productDTO = new ProductDTO();
-            modelMapper.map(productEntity, productDTO);
-            productDTO.setCategoryId(productEntity.getCategoryEntity().getIdCategory());
-            productDTO.setCategoryName(productEntity.getCategoryEntity().getNameCategory());
-            productDTO.setStatus(productEntity.getStatusEntity().getStatusCode());
-
-            List<ImageDTO> imageDTOS = new ArrayList<>();
-            for (ImageEntity imageEntity : productEntity.getImageEntities()) {
-                ImageDTO imageDTO = new ImageDTO();
-                imageDTO.setIdImage(imageEntity.getIdImage());
-                imageDTO.setImageBase64(ConvertByteToBase64.toBase64(imageEntity.getImage()));
-                imageDTOS.add(imageDTO);
-            }
-            productDTO.setImageDTOS(imageDTOS);
-
-            List<RentalPriceDTO> rentalPriceDTOS = new ArrayList<>();
-            for (RentalPriceEntity rentalPriceEntity : productEntity.getRentailPriceEntities()) {
-                RentalPriceDTO rentalPriceDTO = new RentalPriceDTO();
-                modelMapper.map(rentalPriceEntity, rentalPriceDTO);
-                rentalPriceDTO.setRentalType(rentalPriceEntity.getRentalTypeEntity().getType());
-                rentalPriceDTOS.add(rentalPriceDTO);
-            }
-            productDTO.setRentalPriceDTOS(rentalPriceDTOS);
-
             dataResponse.setMessage("Success");
-            dataResponse.setData(productDTO);
+            dataResponse.setData(toProductDTO(productEntity));
             dataResponse.setStatus(HttpStatus.OK);
         } catch (NoSuchElementException ex) {
             messageResponse.setMessage("Không tìm thấy thiết bị");
@@ -427,6 +361,25 @@ public class ProductServiceImpl implements ProductService {
             return messageResponse;
         } catch (NoSuchElementException ex) {
             messageResponse.setMessage("Không tìm thấy giá thuê");
+            messageResponse.setStatus(HttpStatus.NOT_FOUND);
+            return messageResponse;
+        }
+    }
+
+    @Override
+    public MessageResponse updateProductStatus(UpdateProductStatusRequest request) {
+        MessageResponse messageResponse = new MessageResponse();
+        try {
+            ProductEntity productEntity = productRepository.findById(request.getIdProduct()).get();
+            // toggle: đảo ngược active
+            boolean current = productEntity.getActive() == null ? true : productEntity.getActive();
+            productEntity.setActive(!current);
+            productRepository.save(productEntity);
+            messageResponse.setMessage(!current ? "Đã bật thiết bị." : "Đã tắt thiết bị.");
+            messageResponse.setStatus(HttpStatus.OK);
+            return messageResponse;
+        } catch (NoSuchElementException ex) {
+            messageResponse.setMessage("Không tìm thấy thiết bị");
             messageResponse.setStatus(HttpStatus.NOT_FOUND);
             return messageResponse;
         }

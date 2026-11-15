@@ -4,12 +4,12 @@ import org.example.yci_web.Entity.*;
 import org.example.yci_web.Model.DTO.*;
 import org.example.yci_web.Model.Request.AcceptBookingRequest;
 import org.example.yci_web.Model.Request.BookingRequest;
+import org.example.yci_web.Model.Request.CompleteBookingRequest;
 import org.example.yci_web.Model.Request.UpdateStatusBookingRequest;
 import org.example.yci_web.Model.Response.DataResponse;
 import org.example.yci_web.Model.Response.MessageResponse;
 import org.example.yci_web.Repository.*;
 import org.example.yci_web.Service.BookingService;
-import org.example.yci_web.Utils.ConvertByteToBase64;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -19,7 +19,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -46,11 +45,15 @@ public class BookingServiceImpl implements BookingService {
     @Autowired
     RentalTypeRepository rentalTypeRepository;
     @Autowired
+    org.example.yci_web.Service.NotificationService notificationService;
+    @Autowired
     PaymentsMethodRepository paymentsMethodRepository;
     @Autowired
     DepositTypeRepository depositTypeRepository;
     @Autowired
     PaymentBookingRepository paymentBookingRepository;
+    @Autowired
+    org.example.yci_web.Repository.ReturnDetailRepository returnDetailRepository;
     @Autowired
     ModelMapper modelMapper;
 
@@ -59,7 +62,6 @@ public class BookingServiceImpl implements BookingService {
         MessageResponse messageResponse = new MessageResponse();
         UserEntity userEntity = null;
         BookingEntity bookingEntity = new BookingEntity();
-        DocumentsEntity documentsEntity = new DocumentsEntity();
         StatusEntity statusEntity = null;
         RentalTypeEntity rentalTypeEntity = null;
         List<BookingDetailEntity> bookingDetailEntities = new ArrayList<>();
@@ -72,16 +74,14 @@ public class BookingServiceImpl implements BookingService {
             messageResponse.setStatus(HttpStatus.BAD_REQUEST);
             return messageResponse;
         }
-        if (bookingRequest.getProductIds() == null || bookingRequest.getProductIds().isEmpty()) {
-            messageResponse.setMessage("Vui lòng chọn ít nhất một thiết bị");
+        // Không cho phép chọn ngày bắt đầu trong quá khứ
+        if (bookingRequest.getTimeStart().isBefore(LocalDateTime.now())) {
+            messageResponse.setMessage("Ngày bắt đầu thuê không được ở trong quá khứ");
             messageResponse.setStatus(HttpStatus.BAD_REQUEST);
             return messageResponse;
         }
-        if (bookingRequest.getImageFront() == null
-                || bookingRequest.getImageFront().isEmpty()
-                || bookingRequest.getImageBack() == null
-                || bookingRequest.getImageBack().isEmpty()) {
-            messageResponse.setMessage("Vui lòng tải ảnh giấy tờ thế chấp");
+        if (bookingRequest.getProductIds() == null || bookingRequest.getProductIds().isEmpty()) {
+            messageResponse.setMessage("Vui lòng chọn ít nhất một thiết bị");
             messageResponse.setStatus(HttpStatus.BAD_REQUEST);
             return messageResponse;
         }
@@ -106,24 +106,32 @@ public class BookingServiceImpl implements BookingService {
             messageResponse.setStatus(HttpStatus.NOT_FOUND);
             return messageResponse;
         }
-        double rentalHours = rentalDurationHours(rentalTypeEntity.getType());
-        if (rentalHours <= 0) {
-            messageResponse.setMessage("Loại giá thuê chưa cấu hình thời lượng rõ ràng");
-            messageResponse.setStatus(HttpStatus.BAD_REQUEST);
-            return messageResponse;
-        }
-        long expectedMinutes = Math.round(rentalHours * 60);
-        long actualMinutes = Duration.between(bookingRequest.getTimeStart(), bookingRequest.getTimeEnd()).toMinutes();
-        if (actualMinutes != expectedMinutes) {
-            messageResponse.setMessage("Thời gian thuê phải khớp với gói " + rentalTypeEntity.getType());
-            messageResponse.setStatus(HttpStatus.BAD_REQUEST);
-            return messageResponse;
-        }
+        // Không validate thời lượng theo gói — booking theo ngày tùy chọn
         Set<Long> requestedProductIds = new LinkedHashSet<>(bookingRequest.getProductIds());
         for (BookingEntity booking : bookingRepository.findAll()) {
             if (isClosedStatus(booking.getStatusEntity())) {
                 continue;
             }
+            String existingStatus = booking.getStatusEntity() == null ? ""
+                    : booking.getStatusEntity().getStatusCode();
+            boolean isRenting = "RENTING".equalsIgnoreCase(existingStatus);
+
+            // Nếu đơn đang RENTING, máy vẫn đang được khách cũ giữ (kể cả trả trễ)
+            // → block mọi đặt thuê mới cho máy đó, bất kể thời gian
+            if (isRenting) {
+                for (BookingDetailEntity detail : booking.getBookingDetailEntities()) {
+                    if (detail.getProductEntity() != null
+                            && requestedProductIds.contains(detail.getProductEntity().getIdProduct())) {
+                        messageResponse.setMessage("Thiết bị " + detail.getProductEntity().getNameProduct()
+                                + " đang được thuê và chưa được trả. Vui lòng chờ thiết bị được trả lại trước khi đặt thuê mới");
+                        messageResponse.setStatus(HttpStatus.BAD_REQUEST);
+                        return messageResponse;
+                    }
+                }
+                continue; // Đã kiểm tra RENTING, bỏ qua overlap check thông thường
+            }
+
+            // Với các đơn chờ xác nhận / đã xác nhận: kiểm tra overlap thời gian
             boolean overlap = bookingRequest.getTimeStart().isBefore(booking.getTimeEnd())
                     && bookingRequest.getTimeEnd().isAfter(booking.getTimeStart());
             if (!overlap) {
@@ -139,13 +147,19 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-//        modelMapper.map(bookingRequest, bookingEntity);
         bookingEntity.setTimeStart(bookingRequest.getTimeStart());
         bookingEntity.setTimeEnd(bookingRequest.getTimeEnd());
         bookingEntity.setNote(bookingRequest.getNote());
         bookingEntity.setUserEntity(userEntity);
         bookingEntity.setStatusEntity(statusEntity);
         bookingEntity.setCreatedAt(LocalDateTime.now());
+
+        // Tính số đơn vị thuê (ngày hoặc giờ) từ khoảng thời gian
+        long totalMinutes = Duration.between(bookingRequest.getTimeStart(), bookingRequest.getTimeEnd()).toMinutes();
+        double rentalUnitHours = rentalDurationHours(rentalTypeEntity.getType()); // số giờ của 1 đơn vị (VD: 24h = 1 ngày)
+        double units = (rentalUnitHours > 0) ? Math.ceil((totalMinutes / 60.0) / rentalUnitHours) : 1;
+        if (units < 1) units = 1;
+
         for (Long idProduct : requestedProductIds) {
             BookingDetailEntity bookingDetailEntity = new BookingDetailEntity();
             ProductEntity productEntity;
@@ -162,31 +176,96 @@ public class BookingServiceImpl implements BookingService {
                 messageResponse.setStatus(HttpStatus.BAD_REQUEST);
                 return messageResponse;
             }
+            double unitPrice = rentalPriceEntity.getPrice() == null ? 0 : rentalPriceEntity.getPrice();
+            double lineTotal = unitPrice * units;
             bookingDetailEntity.setBookingEntity(bookingEntity);
             bookingDetailEntity.setProductEntity(productEntity);
-            bookingDetailEntity.setTotalPrice(rentalPriceEntity.getPrice());
-            totalAmount += rentalPriceEntity.getPrice() == null ? 0 : rentalPriceEntity.getPrice();
+            bookingDetailEntity.setTotalPrice(lineTotal);
+            totalAmount += lineTotal;
             bookingDetailEntities.add(bookingDetailEntity);
         }
         bookingEntity.setTotalAmount(totalAmount);
         bookingEntity.setBookingDetailEntities(bookingDetailEntities);
-
-        StatusEntity statusDocument = findOrCreateStatus("NOT YET RECEIVED");
-        documentsEntity.setBookingEntity(bookingEntity);
-        documentsEntity.setStatusEntity(statusDocument);
-        documentsEntity.setDocumentType(bookingRequest.getDocumentType());
-        documentsEntity.setDocumentNumber(bookingRequest.getDocumentNumber());
-        try {
-            documentsEntity.setImageBack(bookingRequest.getImageBack().getBytes());
-            documentsEntity.setImageFront(bookingRequest.getImageFront().getBytes());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        bookingEntity.setDocumentsEntity(documentsEntity);
         bookingRepository.save(bookingEntity);
+
+        // Sinh mã đơn dạng HD000001 từ idBooking (gán sau khi DB trả về id)
+        bookingEntity.setBookingCode("HD" + String.format("%06d", bookingEntity.getIdBooking()));
+        bookingRepository.save(bookingEntity);
+
+        // ── Thông báo ──────────────────────────────────────────
+        // Khách: đặt thành công
+        notificationService.push(userEntity.getIdUser(),
+                "Đặt lịch thuê thành công 🎉",
+                "Đơn thuê " + bookingEntity.getBookingCode() + " đã được gửi. Vui lòng chờ nhân viên xác nhận.",
+                "SUCCESS", "/orders");
+        // Admin & nhân viên: có đơn mới
+        pushToStaff("Đơn thuê mới " + bookingEntity.getBookingCode(),
+                "Khách hàng " + userEntity.getFullName() + " vừa gửi yêu cầu thuê. Cần xác nhận.",
+                "INFO", "/admin/bookings");
+
         messageResponse.setMessage("Đặt lịch thuê thành công");
         messageResponse.setStatus(HttpStatus.OK);
         return messageResponse;
+    }
+
+    // ── Helper: map a single BookingEntity → BookingDTO (no document fields) ──
+    private BookingDTO toBookingDTO(BookingEntity bookingEntity) {
+        BookingDTO bookingDTO = new BookingDTO();
+        modelMapper.map(bookingEntity, bookingDTO);
+        bookingDTO.setStatus(bookingEntity.getStatusEntity() != null
+                ? bookingEntity.getStatusEntity().getStatusCode() : "");
+        // Đảm bảo bookingCode luôn có giá trị (backfill cho đơn cũ chưa có code)
+        if (bookingEntity.getBookingCode() == null || bookingEntity.getBookingCode().isBlank()) {
+            bookingDTO.setBookingCode("HD" + String.format("%06d", bookingEntity.getIdBooking()));
+        }
+
+        List<BookingDetailDTO> bookingDetailDTOS = new ArrayList<>();
+        for (BookingDetailEntity bookingDetailEntity : bookingEntity.getBookingDetailEntities()) {
+            BookingDetailDTO bookingDetailDTO = new BookingDetailDTO();
+            modelMapper.map(bookingDetailEntity, bookingDetailDTO);
+
+            ProductBookingDTO productBookingDTO = new ProductBookingDTO();
+            if (bookingDetailEntity.getProductEntity() != null) {
+                modelMapper.map(bookingDetailEntity.getProductEntity(), productBookingDTO);
+            }
+            productBookingDTO.setPrice(bookingDetailEntity.getTotalPrice());
+            bookingDetailDTO.setProductBookingDTO(productBookingDTO);
+
+            if (!bookingDetailEntity.getReturnDetailEntities().isEmpty()) {
+                for (ReturnDetailEntity returnDetailEntity : bookingDetailEntity.getReturnDetailEntities()) {
+                    ReturnDetailDTO returnDetailDTO = new ReturnDetailDTO();
+                    modelMapper.map(returnDetailEntity, returnDetailDTO);
+                    bookingDetailDTO.setReturnDetailDTO(returnDetailDTO);
+                }
+            }
+            bookingDetailDTOS.add(bookingDetailDTO);
+        }
+        bookingDTO.setBookingDetailDTOS(bookingDetailDTOS);
+
+        if (bookingEntity.getDepositTypeEntity() != null) {
+            DepositTypeDTO depositTypeDTO = new DepositTypeDTO();
+            modelMapper.map(bookingEntity.getDepositTypeEntity(), depositTypeDTO);
+            bookingDTO.setDepositTypeDTO(depositTypeDTO);
+        }
+
+        UserBookingDTO userBookingDTO = new UserBookingDTO();
+        if (bookingEntity.getUserEntity() != null) {
+            modelMapper.map(bookingEntity.getUserEntity(), userBookingDTO);
+        }
+        bookingDTO.setUserBookingDTO(userBookingDTO);
+
+        List<PaymentBookingDTO> paymentBookingDTOS = new ArrayList<>();
+        for (PaymentBookingEntity paymentBookingEntity : bookingEntity.getPaymentBookingEntities()) {
+            PaymentBookingDTO paymentBookingDTO = new PaymentBookingDTO();
+            modelMapper.map(paymentBookingEntity, paymentBookingDTO);
+            if (paymentBookingEntity.getPaymentsMethodEntity() != null) {
+                paymentBookingDTO.setPaymentMethod(paymentBookingEntity.getPaymentsMethodEntity().getMethod());
+            }
+            paymentBookingDTOS.add(paymentBookingDTO);
+        }
+        bookingDTO.setPaymentBookingDTOS(paymentBookingDTOS);
+
+        return bookingDTO;
     }
 
     @Override
@@ -195,60 +274,7 @@ public class BookingServiceImpl implements BookingService {
         Page<BookingEntity> bookingEntities = bookingRepository.findAll(pageable);
         List<BookingDTO> bookingDTOS = new ArrayList<>();
         for (BookingEntity bookingEntity : bookingEntities) {
-            BookingDTO bookingDTO = new BookingDTO();
-            modelMapper.map(bookingEntity, bookingDTO);
-            bookingDTO.setStatus(bookingEntity.getStatusEntity().getStatusCode());
-
-            List<BookingDetailDTO> bookingDetailDTOS = new ArrayList<>();
-            for (BookingDetailEntity bookingDetailEntity : bookingEntity.getBookingDetailEntities()) {
-                BookingDetailDTO bookingDetailDTO = new BookingDetailDTO();
-                modelMapper.map(bookingDetailEntity, bookingDetailDTO);
-
-                ProductBookingDTO productBookingDTO = new ProductBookingDTO();
-                modelMapper.map(bookingDetailEntity.getProductEntity(), productBookingDTO);
-                productBookingDTO.setPrice(bookingDetailEntity.getTotalPrice());
-                bookingDetailDTO.setProductBookingDTO(productBookingDTO);
-
-                if (!bookingDetailEntity.getReturnDetailEntities().isEmpty()) {
-                    for (ReturnDetailEntity returnDetailEntity : bookingDetailEntity.getReturnDetailEntities()) {
-                        ReturnDetailDTO returnDetailDTO = new ReturnDetailDTO();
-                        modelMapper.map(returnDetailEntity, returnDetailDTO);
-                        bookingDetailDTO.setReturnDetailDTO(returnDetailDTO);
-                    }
-                }
-
-                bookingDetailDTOS.add(bookingDetailDTO);
-            }
-            bookingDTO.setBookingDetailDTOS(bookingDetailDTOS);
-
-            if (bookingEntity.getDepositTypeEntity() != null) {
-                DepositTypeDTO depositTypeDTO = new DepositTypeDTO();
-                modelMapper.map(bookingEntity.getDepositTypeEntity(), depositTypeDTO);
-                bookingDTO.setDepositTypeDTO(depositTypeDTO);
-            }
-
-
-            UserBookingDTO userBookingDTO = new UserBookingDTO();
-            modelMapper.map(bookingEntity.getUserEntity(), userBookingDTO);
-            bookingDTO.setUserBookingDTO(userBookingDTO);
-
-            DocumentBookingDTO documentBookingDTO = new DocumentBookingDTO();
-            modelMapper.map(bookingEntity.getDocumentsEntity(), documentBookingDTO);
-            documentBookingDTO.setStatus(bookingEntity.getDocumentsEntity().getStatusEntity().getStatusCode());
-            documentBookingDTO.setImageFront(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageFront()));
-            documentBookingDTO.setImageBack(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageBack()));
-            bookingDTO.setDocumentBookingDTO(documentBookingDTO);
-
-            List<PaymentBookingDTO> paymentBookingDTOS = new ArrayList<>();
-            for (PaymentBookingEntity paymentBookingEntity : bookingEntity.getPaymentBookingEntities()) {
-                PaymentBookingDTO paymentBookingDTO = new PaymentBookingDTO();
-                modelMapper.map(paymentBookingEntity, paymentBookingDTO);
-                paymentBookingDTO.setPaymentMethod(paymentBookingEntity.getPaymentsMethodEntity().getMethod());
-                paymentBookingDTOS.add(paymentBookingDTO);
-            }
-            bookingDTO.setPaymentBookingDTOS(paymentBookingDTOS);
-
-            bookingDTOS.add(bookingDTO);
+            bookingDTOS.add(toBookingDTO(bookingEntity));
         }
         return new PageImpl<>(bookingDTOS, bookingEntities.getPageable(), bookingEntities.getTotalElements());
     }
@@ -267,7 +293,6 @@ public class BookingServiceImpl implements BookingService {
                         bookingEntity.setDepositTypeEntity(depositTypeEntity);
                         bookingEntity.setStatusEntity(statusEntity);
 
-                        //luu tien coc cua khach
                         Double depositPrice = (depositTypeEntity.getPercentDeposit() * bookingEntity.getTotalAmount()) / 100;
                         PaymentBookingEntity paymentBookingEntity = new PaymentBookingEntity();
                         paymentBookingEntity.setPaymentsMethodEntity(paymentsMethodEntity);
@@ -275,9 +300,17 @@ public class BookingServiceImpl implements BookingService {
                         paymentBookingEntity.setPaidAt(LocalDateTime.now());
                         paymentBookingEntity.setPrice(depositPrice);
                         paymentBookingEntity.setRemainAmount(bookingEntity.getTotalAmount() - depositPrice);
+                        paymentBookingEntity.setNote("Tiền cọc (" + depositTypeEntity.getPercentDeposit().intValue() + "%)");
                         paymentBookingRepository.save(paymentBookingEntity);
 
                         bookingRepository.save(bookingEntity);
+
+                        // ── Thông báo ──────────────────────────────────────────
+                        Long customerId = bookingEntity.getUserEntity().getIdUser();
+                        notificationService.push(customerId,
+                                "Đơn thuê đã được xác nhận ✅",
+                                "Đơn thuê #" + bookingEntity.getIdBooking() + " đã được xác nhận. Vui lòng đến nhận thiết bị đúng giờ.",
+                                "SUCCESS", "/orders");
 
                         messageResponse.setMessage("Xác nhận đơn thuê thành công");
                         messageResponse.setStatus(HttpStatus.OK);
@@ -365,74 +398,115 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
+    public MessageResponse completeBooking(CompleteBookingRequest request) {
+        MessageResponse response = new MessageResponse();
+        try {
+            BookingEntity booking = bookingRepository.findById(request.getBookingId())
+                    .orElseThrow(() -> new NoSuchElementException("Không tìm thấy đơn thuê"));
+
+            String currentStatus = booking.getStatusEntity() == null ? ""
+                    : booking.getStatusEntity().getStatusCode();
+            if (!currentStatus.equals("RENTING")) {
+                response.setMessage("Chỉ có thể hoàn tất đơn đang ở trạng thái RENTING");
+                response.setStatus(HttpStatus.BAD_REQUEST);
+                return response;
+            }
+
+            int lateHours = request.getLateHours() == null ? 0 : request.getLateHours();
+            double feePerHour = request.getLateFeePerHour() == null ? 0.0 : request.getLateFeePerHour();
+            double cleaningFee = request.getCleaningFee() == null ? 0.0 : request.getCleaningFee();
+            double damageFee = request.getDamageFee() == null ? 0.0 : request.getDamageFee();
+            double lateFee = lateHours * feePerHour;
+            double subtotal = lateFee + cleaningFee + damageFee;
+
+            // Ghi ReturnDetail cho từng thiết bị + giải phóng sản phẩm
+            StatusEntity availableStatus = findOrCreateStatus("AVAILABLE");
+            for (BookingDetailEntity detail : booking.getBookingDetailEntities()) {
+                ReturnDetailEntity rd = new ReturnDetailEntity();
+                rd.setBookingDetailEntity(detail);
+                rd.setReturnedQuantity(1);
+                rd.setLateHours(lateHours);
+                rd.setLateFee(lateFee);
+                rd.setCleaningFee(cleaningFee);
+                rd.setDamageFee(damageFee);
+                rd.setSubtotalFee(subtotal);
+                rd.setDescription(request.getDescription());
+                returnDetailRepository.save(rd);
+                // Giải phóng sản phẩm
+                detail.getProductEntity().setStatusEntity(availableStatus);
+            }
+
+            // Tạo payment record cho phụ phí nếu có
+            if (subtotal > 0) {
+                String methodName = "transfer".equalsIgnoreCase(request.getPaymentMethod())
+                        ? "Chuyển khoản" : "Tiền mặt";
+                PaymentsMethodEntity method = paymentsMethodRepository.findAll().stream()
+                        .filter(m -> m.getMethod() != null
+                                && m.getMethod().toLowerCase().contains(
+                                        "transfer".equalsIgnoreCase(request.getPaymentMethod()) ? "khoản" : "mặt"))
+                        .findFirst()
+                        .orElseGet(() -> {
+                            PaymentsMethodEntity m = new PaymentsMethodEntity();
+                            m.setMethod(methodName);
+                            return paymentsMethodRepository.save(m);
+                        });
+                PaymentBookingEntity extraPayment = new PaymentBookingEntity();
+                extraPayment.setBookingEntity(booking);
+                extraPayment.setPaymentsMethodEntity(method);
+                extraPayment.setPrice(subtotal);
+                extraPayment.setRemainAmount(0.0);
+                extraPayment.setPaidAt(LocalDateTime.now());
+                extraPayment.setPaymentStatus("PAID");
+                // Ghi nhãn chi tiết phụ thu
+                List<String> parts = new ArrayList<>();
+                if (lateHours > 0) parts.add("trả trễ " + lateHours + "h");
+                if (cleaningFee > 0) parts.add("vệ sinh");
+                if (damageFee > 0) parts.add("hư hỏng");
+                extraPayment.setNote("Phụ thu: " + String.join(", ", parts));
+                paymentBookingRepository.save(extraPayment);
+            }
+
+            // Chuyển đơn → COMPLETED
+            booking.setStatusEntity(findOrCreateStatus("COMPLETED"));
+            bookingRepository.save(booking);
+
+            // Thông báo khách
+            String displayCode = booking.getBookingCode() != null ? booking.getBookingCode() : ("#" + booking.getIdBooking());
+            String msg = "Đơn thuê " + displayCode + " đã hoàn tất.";
+            if (lateHours > 0) {
+                msg += " Phụ phí trễ " + lateHours + " giờ: " + String.format("%,.0f", lateFee) + " đ.";
+            }
+            if (cleaningFee > 0 || damageFee > 0) {
+                msg += " Phí phát sinh thêm: " + String.format("%,.0f", cleaningFee + damageFee) + " đ.";
+            }
+            notificationService.push(booking.getUserEntity().getIdUser(),
+                    "Đơn thuê đã hoàn tất ✅", msg, "SUCCESS", "/orders");
+
+            response.setMessage("Hoàn tất đơn thuê thành công");
+            response.setStatus(HttpStatus.OK);
+        } catch (NoSuchElementException ex) {
+            response.setMessage(ex.getMessage());
+            response.setStatus(HttpStatus.NOT_FOUND);
+        }
+        return response;
+    }
+
+    @Override
     public Object getBookingsByUser(Long idUser) {
         MessageResponse messageResponse = new MessageResponse();
         DataResponse dataResponse = new DataResponse();
         List<BookingDTO> bookingDTOS = new ArrayList<>();
         UserEntity userEntity = null;
-        try{
+        try {
             userEntity = userRepository.findById(idUser).get();
-        }catch (NoSuchElementException ex){
+        } catch (NoSuchElementException ex) {
             messageResponse.setStatus(HttpStatus.NOT_FOUND);
             messageResponse.setMessage("Không tìm thấy khách hàng");
             return messageResponse;
         }
         List<BookingEntity> bookingEntities = bookingRepository.findByUserEntity(userEntity);
         for (BookingEntity bookingEntity : bookingEntities) {
-            BookingDTO bookingDTO = new BookingDTO();
-            modelMapper.map(bookingEntity, bookingDTO);
-            bookingDTO.setStatus(bookingEntity.getStatusEntity().getStatusCode());
-
-            List<BookingDetailDTO> bookingDetailDTOS = new ArrayList<>();
-            for (BookingDetailEntity bookingDetailEntity : bookingEntity.getBookingDetailEntities()) {
-                BookingDetailDTO bookingDetailDTO = new BookingDetailDTO();
-                modelMapper.map(bookingDetailEntity, bookingDetailDTO);
-
-                ProductBookingDTO productBookingDTO = new ProductBookingDTO();
-                modelMapper.map(bookingDetailEntity.getProductEntity(), productBookingDTO);
-                productBookingDTO.setPrice(bookingDetailEntity.getTotalPrice());
-                bookingDetailDTO.setProductBookingDTO(productBookingDTO);
-
-                if (!bookingDetailEntity.getReturnDetailEntities().isEmpty()) {
-                    for (ReturnDetailEntity returnDetailEntity : bookingDetailEntity.getReturnDetailEntities()) {
-                        ReturnDetailDTO returnDetailDTO = new ReturnDetailDTO();
-                        modelMapper.map(returnDetailEntity, returnDetailDTO);
-                        bookingDetailDTO.setReturnDetailDTO(returnDetailDTO);
-                    }
-                }
-
-                bookingDetailDTOS.add(bookingDetailDTO);
-            }
-            bookingDTO.setBookingDetailDTOS(bookingDetailDTOS);
-
-            if (bookingEntity.getDepositTypeEntity() != null) {
-                DepositTypeDTO depositTypeDTO = new DepositTypeDTO();
-                modelMapper.map(bookingEntity.getDepositTypeEntity(), depositTypeDTO);
-                bookingDTO.setDepositTypeDTO(depositTypeDTO);
-            }
-
-
-            UserBookingDTO userBookingDTO = new UserBookingDTO();
-            modelMapper.map(bookingEntity.getUserEntity(), userBookingDTO);
-            bookingDTO.setUserBookingDTO(userBookingDTO);
-
-            DocumentBookingDTO documentBookingDTO = new DocumentBookingDTO();
-            modelMapper.map(bookingEntity.getDocumentsEntity(), documentBookingDTO);
-            documentBookingDTO.setStatus(bookingEntity.getDocumentsEntity().getStatusEntity().getStatusCode());
-            documentBookingDTO.setImageFront(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageFront()));
-            documentBookingDTO.setImageBack(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageBack()));
-            bookingDTO.setDocumentBookingDTO(documentBookingDTO);
-
-            List<PaymentBookingDTO> paymentBookingDTOS = new ArrayList<>();
-            for (PaymentBookingEntity paymentBookingEntity : bookingEntity.getPaymentBookingEntities()) {
-                PaymentBookingDTO paymentBookingDTO = new PaymentBookingDTO();
-                modelMapper.map(paymentBookingEntity, paymentBookingDTO);
-                paymentBookingDTO.setPaymentMethod(paymentBookingEntity.getPaymentsMethodEntity().getMethod());
-                paymentBookingDTOS.add(paymentBookingDTO);
-            }
-            bookingDTO.setPaymentBookingDTOS(paymentBookingDTOS);
-
-            bookingDTOS.add(bookingDTO);
+            bookingDTOS.add(toBookingDTO(bookingEntity));
         }
         dataResponse.setStatus(HttpStatus.OK);
         dataResponse.setData(bookingDTOS);
@@ -444,71 +518,25 @@ public class BookingServiceImpl implements BookingService {
     public Object getBookingById(Long idBooking) {
         MessageResponse messageResponse = new MessageResponse();
         DataResponse dataResponse = new DataResponse();
-        BookingEntity bookingEntity = null;
         try {
-            bookingEntity = bookingRepository.findById(idBooking).get();
-            BookingDTO bookingDTO = new BookingDTO();
-            modelMapper.map(bookingEntity, bookingDTO);
-            bookingDTO.setStatus(bookingEntity.getStatusEntity().getStatusCode());
-
-            List<BookingDetailDTO> bookingDetailDTOS = new ArrayList<>();
-            for (BookingDetailEntity bookingDetailEntity : bookingEntity.getBookingDetailEntities()) {
-                BookingDetailDTO bookingDetailDTO = new BookingDetailDTO();
-                modelMapper.map(bookingDetailEntity, bookingDetailDTO);
-
-                ProductBookingDTO productBookingDTO = new ProductBookingDTO();
-                modelMapper.map(bookingDetailEntity.getProductEntity(), productBookingDTO);
-                productBookingDTO.setPrice(bookingDetailEntity.getTotalPrice());
-                bookingDetailDTO.setProductBookingDTO(productBookingDTO);
-
-                if (!bookingDetailEntity.getReturnDetailEntities().isEmpty()) {
-                    for (ReturnDetailEntity returnDetailEntity : bookingDetailEntity.getReturnDetailEntities()) {
-                        ReturnDetailDTO returnDetailDTO = new ReturnDetailDTO();
-                        modelMapper.map(returnDetailEntity, returnDetailDTO);
-                        bookingDetailDTO.setReturnDetailDTO(returnDetailDTO);
-                    }
-                }
-
-                bookingDetailDTOS.add(bookingDetailDTO);
-            }
-            bookingDTO.setBookingDetailDTOS(bookingDetailDTOS);
-
-            if (bookingEntity.getDepositTypeEntity() != null) {
-                DepositTypeDTO depositTypeDTO = new DepositTypeDTO();
-                modelMapper.map(bookingEntity.getDepositTypeEntity(), depositTypeDTO);
-                bookingDTO.setDepositTypeDTO(depositTypeDTO);
-            }
-
-
-            UserBookingDTO userBookingDTO = new UserBookingDTO();
-            modelMapper.map(bookingEntity.getUserEntity(), userBookingDTO);
-            bookingDTO.setUserBookingDTO(userBookingDTO);
-
-            DocumentBookingDTO documentBookingDTO = new DocumentBookingDTO();
-            modelMapper.map(bookingEntity.getDocumentsEntity(), documentBookingDTO);
-            documentBookingDTO.setStatus(bookingEntity.getDocumentsEntity().getStatusEntity().getStatusCode());
-            documentBookingDTO.setImageFront(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageFront()));
-            documentBookingDTO.setImageBack(ConvertByteToBase64.toBase64(bookingEntity.getDocumentsEntity().getImageBack()));
-            bookingDTO.setDocumentBookingDTO(documentBookingDTO);
-
-            List<PaymentBookingDTO> paymentBookingDTOS = new ArrayList<>();
-            for (PaymentBookingEntity paymentBookingEntity : bookingEntity.getPaymentBookingEntities()) {
-                PaymentBookingDTO paymentBookingDTO = new PaymentBookingDTO();
-                modelMapper.map(paymentBookingEntity, paymentBookingDTO);
-                paymentBookingDTO.setPaymentMethod(paymentBookingEntity.getPaymentsMethodEntity().getMethod());
-                paymentBookingDTOS.add(paymentBookingDTO);
-            }
-            bookingDTO.setPaymentBookingDTOS(paymentBookingDTOS);
-
+            BookingEntity bookingEntity = bookingRepository.findById(idBooking).get();
             dataResponse.setStatus(HttpStatus.OK);
-            dataResponse.setData(bookingDTO);
+            dataResponse.setData(toBookingDTO(bookingEntity));
             dataResponse.setMessage("Thành công");
             return dataResponse;
-        }catch (NoSuchElementException ex){
+        } catch (NoSuchElementException ex) {
             messageResponse.setStatus(HttpStatus.NOT_FOUND);
             messageResponse.setMessage("Không tìm thấy đơn thuê");
             return messageResponse;
         }
+    }
+
+    // ── Push notification cho toàn bộ admin và nhân viên ──────
+    private void pushToStaff(String title, String message, String type, String link) {
+        userRepository.findByRole(0).forEach(u ->
+                notificationService.push(u.getIdUser(), title, message, type, link));
+        userRepository.findByRole(2).forEach(u ->
+                notificationService.push(u.getIdUser(), title, message, type, link));
     }
 
     private StatusEntity findOrCreateStatus(String statusCode) {

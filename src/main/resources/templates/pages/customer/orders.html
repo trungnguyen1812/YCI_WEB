@@ -9,13 +9,188 @@
     <section class="page-hero compact">
         <div>
             <p class="eyebrow">Lịch sử thuê</p>
-            <h1>Trạng thái đơn, tiền cọc và thanh toán</h1>
-            <p>Dữ liệu lấy từ endpoint đơn thuê theo người dùng đang lưu trong session.</p>
+            <h1>Đơn thuê của tôi</h1>
+            <p>Theo dõi trạng thái đơn, thanh toán cọc và yêu cầu hủy.</p>
         </div>
     </section>
-
     <section class="order-timeline" data-customer-orders></section>
 </main>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL: CHI TIẾT ĐƠN HÀNG
+     ═══════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalOrderDetail" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:560px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow" id="orderDetailEyebrow">Chi tiết đơn</p>
+                <h2 id="orderDetailTitle">—</h2>
+            </div>
+            <button class="bmodal-close" type="button" id="closeOrderDetailModal" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body" id="orderDetailBody" style="padding:20px 24px 0;"></div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL: QR THANH TOÁN CỌC
+     ═══════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalQR" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:440px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Thanh toán cọc</p>
+                <h2 id="qrModalTitle">Quét mã QR để chuyển khoản</h2>
+            </div>
+            <button class="bmodal-close" type="button" id="closeQrModal" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body" style="padding:20px 24px 0;">
+            <!-- QR image -->
+            <div style="text-align:center;margin-bottom:16px;">
+                <img id="qrImage" src="" alt="QR thanh toán"
+                     style="width:220px;height:220px;border-radius:12px;border:1px solid var(--line);display:block;margin:0 auto;">
+                <div id="qrPaidBadge" hidden
+                     style="margin-top:12px;padding:10px 16px;border-radius:10px;background:#e6fbf1;color:#0e7a50;font-weight:700;font-size:15px;">
+                    ✅ Đã thanh toán thành công!
+                </div>
+            </div>
+
+            <!-- Bank info -->
+            <div style="background:#fff7fb;border-radius:10px;padding:14px 16px;margin-bottom:14px;border:1px solid var(--line);">
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--muted);font-size:13px;">Ngân hàng</span>
+                    <strong id="qrBankCode" style="font-size:13px;"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--muted);font-size:13px;">Số tài khoản</span>
+                    <strong id="qrAccountNo" style="font-size:13px;font-family:monospace;"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--muted);font-size:13px;">Tên TK</span>
+                    <strong id="qrAccountName" style="font-size:13px;"></strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                    <span style="color:var(--muted);font-size:13px;">Số tiền</span>
+                    <strong id="qrAmount" style="font-size:15px;color:var(--teal-dark);"></strong>
+                </div>
+                <div style="padding:8px 10px;background:#fff;border-radius:8px;border:1px dashed rgba(233,30,131,.35);">
+                    <p style="font-size:11px;color:var(--muted);margin:0 0 3px;font-weight:700;text-transform:uppercase;">Nội dung chuyển khoản (bắt buộc)</p>
+                    <p id="qrTransferContent" style="font-size:15px;font-weight:800;color:var(--teal-dark);margin:0;letter-spacing:.04em;word-break:break-all;"></p>
+                </div>
+            </div>
+
+            <!-- Countdown + status -->
+            <div style="text-align:center;margin-bottom:16px;">
+                <p style="font-size:12px;color:var(--muted);">Hết hạn lúc: <strong id="qrExpiresAt"></strong></p>
+                <div id="qrPollingStatus" style="font-size:13px;color:var(--muted);margin-top:6px;">
+                    <span class="notif-spinner" style="display:inline-block;margin-right:6px;"></span>
+                    Đang chờ xác nhận thanh toán...
+                </div>
+            </div>
+
+            <div class="pmodal-footer" style="padding:14px 0 0;">
+                <button class="button ghost" type="button" id="closeQrModal2" style="width:100%;">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL: YÊU CẦU HỦY ĐƠN
+     ═══════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalCancelRequest" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:480px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Yêu cầu hủy</p>
+                <h2 id="cancelModalTitle">Gửi yêu cầu hủy đơn</h2>
+            </div>
+            <button class="bmodal-close" type="button" id="closeCancelModal" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body">
+            <form id="formCancelRequest">
+                <input type="hidden" id="cancelBookingId">
+
+                <div style="background:#fff8e1;border-radius:10px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(182,106,0,.22);font-size:13px;color:#b66a00;">
+                    <strong>⚠️ Lưu ý:</strong> Yêu cầu hủy sẽ được gửi đến admin xem xét. Đơn thuê chưa bị hủy ngay cho đến khi admin duyệt.
+                </div>
+
+                <div class="pform-field" style="margin-bottom:14px;">
+                    <label style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);">
+                        Lý do hủy <span class="required-mark">*</span>
+                    </label>
+                    <textarea id="cancelReason" rows="3" placeholder="Vui lòng nêu rõ lý do hủy đơn..."
+                              style="width:100%;padding:10px 12px;border:1.5px solid rgba(243,201,220,.8);border-radius:9px;font-size:14px;background:#fff7fb;color:var(--ink);outline:none;font-family:inherit;resize:vertical;transition:border-color .2s;"
+                              required></textarea>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <p style="font-size:13px;font-weight:700;margin:0 0 10px;color:var(--ink);">
+                        Thông tin tài khoản nhận hoàn tiền
+                    </p>
+                    <p style="font-size:12px;color:var(--muted);margin:0 0 12px;">
+                        Nếu đã đặt cọc và được duyệt hoàn, admin sẽ chuyển khoản về tài khoản này.
+                    </p>
+                    <div class="pform-grid" style="grid-template-columns:1fr 1fr;gap:10px;">
+                        <div class="pform-field span2">
+                            <label>Ngân hàng</label>
+                            <input id="cancelBankName" placeholder="VD: VietinBank, Vietcombank...">
+                        </div>
+                        <div class="pform-field">
+                            <label>Số tài khoản</label>
+                            <input id="cancelAccountNo" placeholder="Số TK nhận hoàn" inputmode="numeric">
+                        </div>
+                        <div class="pform-field">
+                            <label>Tên chủ tài khoản</label>
+                            <input id="cancelAccountName" placeholder="Đúng với ngân hàng">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pmodal-footer" style="padding:14px 0 0;">
+                    <button class="button ghost" type="button" id="closeCancelModal2">Hủy bỏ</button>
+                    <button class="button primary" type="submit" id="btnSubmitCancelRequest">
+                        <i data-lucide="send"></i> Gửi yêu cầu hủy
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MODAL: MÃ QR NHẬN MÁY (đã xác nhận đơn)
+     ═══════════════════════════════════════════════════ -->
+<div class="pmodal-overlay" id="modalPickupQR" hidden aria-modal="true" role="dialog">
+    <div class="pmodal-box" style="max-width:380px;">
+        <div class="pmodal-header">
+            <div>
+                <p class="eyebrow">Nhận máy</p>
+                <h2 id="pickupQrTitle">Mã QR nhận máy</h2>
+            </div>
+            <button class="bmodal-close" type="button" id="closePickupQrModal" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="pmodal-body" style="padding:20px 24px 0;">
+            <div style="text-align:center;">
+                <div id="pickupQrBox" style="display:inline-block;padding:14px;background:#fff;border:1px solid var(--line);border-radius:14px;"></div>
+                <p style="font-size:13px;color:var(--muted);margin-top:14px;">
+                    Đưa mã này cho nhân viên khi đến nhận máy. Nhân viên quét để mở nhanh đơn của bạn.
+                </p>
+            </div>
+            <div class="pmodal-footer" style="padding:14px 0 0;">
+                <button class="button ghost" type="button" id="closePickupQrModal2" style="width:100%;">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 <div th:replace="~{fragments/layout :: scripts}"></div>

@@ -24,17 +24,35 @@ public class AnalyticsController {
     @Autowired
     PaymentBookingRepository paymentBookingRepository;
 
+    // Trạng thái đơn bị loại khỏi doanh thu
+    private static final java.util.Set<String> CANCELLED_STATUSES =
+            java.util.Set.of("CANCELLED", "CANCEL_REQUESTED", "REFUNDED");
+
     @GetMapping(value = "/api/admin/revenue/statistics")
     public ResponseEntity<Object> revenueStatistics() {
-        List<BookingEntity> bookings = bookingRepository.findAll();
-        List<PaymentBookingEntity> payments = paymentBookingRepository.findAll();
-        Map<String, Object> data = new LinkedHashMap<>();
-        Map<String, Double> revenueByDay = new LinkedHashMap<>();
-        Map<String, Double> revenueByMonth = new LinkedHashMap<>();
-        Map<String, Double> revenueByYear = new LinkedHashMap<>();
+        // Chỉ lấy đơn chưa hủy / chưa hoàn tiền
+        List<BookingEntity> allBookings  = bookingRepository.findAll();
+        List<BookingEntity> activeBookings = allBookings.stream()
+                .filter(b -> b.getStatusEntity() != null
+                        && !CANCELLED_STATUSES.contains(b.getStatusEntity().getStatusCode()))
+                .toList();
 
-        double totalBookingAmount = bookings.stream()
-                .mapToDouble(booking -> booking.getTotalAmount() == null ? 0 : booking.getTotalAmount())
+        // Chỉ lấy payment PAID từ đơn đang hoạt động
+        List<PaymentBookingEntity> payments = paymentBookingRepository.findAll().stream()
+                .filter(p -> "PAID".equals(p.getPaymentStatus()))
+                .filter(p -> p.getBookingEntity() != null
+                        && p.getBookingEntity().getStatusEntity() != null
+                        && !CANCELLED_STATUSES.contains(
+                                p.getBookingEntity().getStatusEntity().getStatusCode()))
+                .toList();
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Double> revenueByDay   = new LinkedHashMap<>();
+        Map<String, Double> revenueByMonth = new LinkedHashMap<>();
+        Map<String, Double> revenueByYear  = new LinkedHashMap<>();
+
+        double totalBookingAmount = activeBookings.stream()
+                .mapToDouble(b -> b.getTotalAmount() == null ? 0 : b.getTotalAmount())
                 .sum();
         double totalPaid = 0;
         double totalRemaining = 0;
@@ -52,14 +70,14 @@ public class AnalyticsController {
             revenueByYear.merge(year, paid, Double::sum);
         }
 
-        data.put("bookingCount", bookings.size());
+        data.put("bookingCount", activeBookings.size());
         data.put("paymentCount", payments.size());
         data.put("totalBookingAmount", totalBookingAmount);
         data.put("totalPaid", totalPaid);
         data.put("totalRemaining", totalRemaining);
-        data.put("revenueByDay", revenueByDay);
+        data.put("revenueByDay",   revenueByDay);
         data.put("revenueByMonth", revenueByMonth);
-        data.put("revenueByYear", revenueByYear);
+        data.put("revenueByYear",  revenueByYear);
 
         DataResponse<Map<String, Object>> response = new DataResponse<>();
         response.setData(data);

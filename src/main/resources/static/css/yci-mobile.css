@@ -1,0 +1,956 @@
+/* ══════════════════════════════════════════════════════════════
+   YCI MOBILE — responsive overrides for screens ≤ 768px
+   Chỉ áp dụng cho mobile, KHÔNG ảnh hưởng desktop.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ─────────────────────────────────────────────────────────────
+   1. HEADER — hamburger nav + compact header
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    /* Header compact */
+    .site-header {
+        grid-template-columns: auto 1fr auto;
+        min-height: 60px;
+        padding: 8px 14px;
+        gap: 8px;
+    }
+
+    /* Brand chỉ hiện logo */
+    .brand strong,
+    .brand small {
+        display: none;
+    }
+    .brand-logo {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Ẩn nav desktop, hiện hamburger */
+    .site-nav {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+        background: rgba(20, 8, 16, 0.96);
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 80px 24px 40px;
+    }
+
+    .site-nav.is-open {
+        display: flex;
+    }
+
+    .site-nav a {
+        width: 100%;
+        max-width: 320px;
+        text-align: center;
+        padding: 14px 20px;
+        font-size: 16px;
+        font-weight: 700;
+        color: rgba(255,255,255,0.85);
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.10);
+        white-space: nowrap;
+    }
+
+    .site-nav a:hover,
+    .site-nav a.is-active {
+        background: rgba(233,30,131,0.25);
+        color: #fff;
+        border-color: rgba(233,30,131,0.45);
+    }
+
+    /* Nút đóng overlay nav */
+    .site-nav::before {
+        content: '✕';
+        position: absolute;
+        top: 18px;
+        right: 20px;
+        font-size: 22px;
+        color: rgba(255,255,255,0.7);
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.15);
+    }
+
+    /* Hamburger button */
+    .hamburger-btn {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--surface);
+        cursor: pointer;
+        color: var(--ink);
+        flex-shrink: 0;
+    }
+
+    /* Avatar chip compact */
+    .avatar-chip strong {
+        display: none;
+    }
+    .avatar-chip {
+        padding: 4px;
+        border-radius: 50%;
+    }
+    .avatar-chip span {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+    }
+
+    /* Header actions compact */
+    .header-actions {
+        gap: 6px;
+    }
+}
+
+/* Ẩn hamburger trên desktop */
+.hamburger-btn {
+    display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   2. PAGE SHELL & HERO
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .page-shell {
+        padding: 20px 0 48px;
+    }
+
+    .page-hero.compact {
+        min-height: auto;
+        padding: 20px 0 12px;
+    }
+
+    .page-hero h1,
+    .admin-heading h1 {
+        font-size: 24px !important;
+    }
+
+    .page-hero p {
+        font-size: 13px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   3. ORDER CARD (trang Đơn của tôi)
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .order-timeline {
+        gap: 12px;
+    }
+
+    .order-card {
+        padding: 14px;
+        gap: 12px;
+        border-radius: 14px;
+    }
+
+    .order-card h2 {
+        font-size: 15px;
+        line-height: 1.3;
+    }
+
+    .order-card .eyebrow {
+        font-size: 11px;
+    }
+
+    .order-card .muted {
+        font-size: 12px;
+    }
+
+    /* order-head: status + nút xem chi tiết full width */
+    .order-head > div:last-child {
+        flex-direction: row !important;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+    }
+
+    .order-head > div:last-child .button {
+        flex: 1;
+        min-height: 36px;
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    /* Info grid 3 ô → 3 cột nhỏ trên mobile */
+    .order-card .info-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+    }
+
+    .order-card .info-card {
+        padding: 10px 8px;
+        border-radius: 10px;
+        text-align: center;
+    }
+
+    .order-card .info-card strong {
+        font-size: 13px;
+        display: block;
+        line-height: 1.2;
+    }
+
+    .order-card .info-card p {
+        font-size: 10px;
+        margin: 3px 0 0;
+    }
+
+    /* Nút action full width */
+    .order-card [style*="display:flex"] {
+        flex-direction: column;
+    }
+
+    .order-card .button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Deposit warning compact */
+    .deposit-notice {
+        padding: 10px 12px !important;
+        font-size: 12px !important;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   4. TOOLBAR
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .toolbar {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        padding: 12px 14px;
+    }
+
+    .toolbar .search-field {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .toolbar .select {
+        width: 100%;
+    }
+
+    .toolbar .button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   5. ADMIN SIDEBAR → horizontal pill bar on mobile
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .admin-sidebar {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: none;
+        position: static;
+        height: auto;
+        padding: 8px 12px;
+        gap: 4px;
+        box-shadow: none;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .admin-sidebar::-webkit-scrollbar { display: none; }
+    .admin-sidebar::before { display: none; }
+
+    .admin-sidebar .admin-link {
+        flex-shrink: 0;
+        padding: 8px 12px;
+        font-size: 12px;
+        border-left: none;
+        border-bottom: 2px solid transparent;
+        border-radius: 8px;
+    }
+
+    .admin-sidebar .admin-link.is-active {
+        border-left: none;
+        border-bottom-color: #e91e83;
+        background: rgba(233,30,131,0.12);
+    }
+
+    .admin-content {
+        padding: 14px 12px 48px;
+        gap: 12px;
+    }
+
+    .admin-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        padding-bottom: 14px;
+    }
+
+    /* Nút action trong heading */
+    .admin-heading > .button,
+    .admin-heading > div[style] {
+        width: 100%;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   6. DATA TABLE → horizontal scroll
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 12px;
+    }
+
+    /* Hiện scroll hint */
+    .table-wrap::after {
+        content: '';
+        display: block;
+        height: 0;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   7. MODAL — bottom sheet cho mobile
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    /* bmodal — admin booking detail */
+    .bmodal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .bmodal-box {
+        max-width: 100%;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+    }
+
+    .bmodal-header {
+        padding: 16px 16px 14px;
+    }
+
+    .bmodal-header h2 {
+        font-size: 17px;
+    }
+
+    .bmodal-body {
+        padding: 14px 16px 20px;
+    }
+
+    .bmodal-finance-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .bmodal-fin-card {
+        padding: 12px;
+    }
+
+    .bmodal-fin-card strong {
+        font-size: 15px;
+    }
+
+    .bmodal-cols {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .bmodal-checklist {
+        grid-template-columns: 1fr;
+    }
+
+    /* pmodal — customer modals */
+    .pmodal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .pmodal-box {
+        max-width: 100% !important;
+        width: 100%;
+        border-radius: 20px 20px 0 0;
+        max-height: 92vh;
+    }
+
+    .pmodal-header {
+        padding: 16px 16px 14px;
+    }
+
+    .pmodal-header h2 {
+        font-size: 17px;
+    }
+
+    .pmodal-body {
+        padding: 14px 16px 0;
+    }
+
+    .pmodal-footer {
+        padding: 12px 16px 16px !important;
+    }
+
+    .pmodal-cols {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   8. FOOTER
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .site-footer {
+        flex-direction: column;
+        gap: 12px;
+        padding: 24px 16px;
+        text-align: center;
+    }
+
+    .footer-grid {
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px 16px;
+        font-size: 13px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   9. BOOKING PAGE
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .booking-page-layout {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .booking-right {
+        position: static;
+    }
+
+    .booking-date-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .booking-date-arrow {
+        display: none;
+    }
+
+    .booking-steps {
+        grid-template-columns: 1fr !important;
+        gap: 10px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   10. PROFILE PAGE
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 16px;
+        gap: 12px;
+    }
+
+    .profile-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 22px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   11. STAFF PAGE
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .staff-layout .admin-grid.bookings {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .staff-layout .data-table {
+        min-width: 640px;
+        font-size: 13px;
+    }
+
+    .staff-layout .data-table td {
+        padding: 12px 10px;
+    }
+
+    .staff-steps {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px;
+    }
+
+    .staff-inspector {
+        padding: 14px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   12. ADMIN HEADING BUTTON GROUP
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    /* Button group (Tải lại + Quét QR) */
+    .admin-heading div[style*="display:flex"],
+    .admin-heading > div:last-child {
+        flex-shrink: 0;
+        margin-top: 0;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   13. NOTIFICATION DROPDOWN
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .notif-dropdown {
+        width: calc(100vw - 20px);
+        right: -46px;
+        max-height: 60vh;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   14. STATUS TABS
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .admin-tabs {
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 6px 8px;
+        gap: 4px;
+        flex-wrap: nowrap;
+    }
+
+    .admin-tabs::-webkit-scrollbar { display: none; }
+
+    .admin-tab {
+        flex-shrink: 0;
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   15. SURFACE CARDS trong admin
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    .admin-content .surface {
+        padding: 14px;
+        border-radius: 12px;
+    }
+
+    .metric-card {
+        padding: 16px;
+        border-radius: 12px;
+    }
+
+    .metric-card strong {
+        font-size: 26px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   16. PRODUCT DETAIL PAGE
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    /* Layout đã stack 1 cột ở 1100px — tinh chỉnh thêm */
+    .detail-layout {
+        gap: 0;
+    }
+
+    /* Media: ảnh chính */
+    .detail-media {
+        padding: 8px;
+        border-radius: 14px 14px 0 0;
+        border-bottom: none;
+    }
+
+    .detail-media > img {
+        aspect-ratio: 4 / 3;
+        padding: 8px;
+        border-radius: 10px;
+    }
+
+    /* Thumbnail nhỏ gọn hơn */
+    .thumbnail-row {
+        gap: 6px;
+        margin-top: 8px;
+        padding-bottom: 4px;
+    }
+
+    .thumbnail-row button {
+        width: 60px;
+        height: 46px;
+        flex-shrink: 0;
+    }
+
+    /* Panel thông tin */
+    .detail-panel {
+        padding: 16px 14px 24px;
+        gap: 14px;
+        border-radius: 0 0 14px 14px;
+        border-top: 1px solid var(--line);
+    }
+
+    .detail-panel h1 {
+        font-size: 22px !important;
+        line-height: 1.25;
+    }
+
+    .lead {
+        font-size: 14px;
+    }
+
+    /* Specs: 2 cột trên mobile vừa, 1 cột trên màn nhỏ */
+    .detail-specs {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .detail-specs div {
+        padding: 10px;
+    }
+
+    .detail-specs dt {
+        font-size: 11px;
+    }
+
+    .detail-specs dd {
+        font-size: 13px;
+    }
+
+    /* Breadcrumb compact */
+    .breadcrumb {
+        font-size: 13px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    /* Price panel */
+    .price-panel {
+        padding: 14px !important;
+        border-radius: 12px;
+    }
+
+    .price-panel h2 {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .price-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .price-chip {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+
+    /* Nút action full width */
+    .detail-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .detail-actions .button {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+        font-size: 15px;
+    }
+}
+
+/* Màn rất nhỏ ≤ 390px */
+@media (max-width: 390px) {
+
+    .detail-specs {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-panel h1 {
+        font-size: 20px !important;
+    }
+
+    .thumbnail-row button {
+        width: 52px;
+        height: 40px;
+    }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   17. BOOKING / GIỎ HÀNG PAGE
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 768px) {
+
+    /* Layout 2 cột → 1 cột (đã xử lý ở 960px nhưng tinh chỉnh) */
+    .booking-page-layout {
+        grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 32px;
+    }
+
+    .booking-right {
+        position: static;
+    }
+
+    /* ── Booking steps: 3 cột → 1 cột ── */
+    .booking-steps {
+        grid-template-columns: 1fr !important;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .booking-steps article {
+        padding: 12px;
+        gap: 4px 8px;
+    }
+
+    .booking-steps svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .booking-steps strong {
+        font-size: 14px;
+    }
+
+    .booking-steps span {
+        font-size: 12px;
+    }
+
+    /* ── Hero compact ── */
+    .page-hero.compact .button.ghost {
+        width: 100%;
+        justify-content: center;
+        margin-top: 8px;
+    }
+
+    /* ── Surface cart card ── */
+    .booking-left > .surface {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    /* ── Booking item trong giỏ ── */
+    .booking-item {
+        padding: 10px;
+    }
+
+    .booking-item-main {
+        grid-template-columns: 64px 1fr;
+        gap: 8px;
+    }
+
+    .booking-item img {
+        width: 64px;
+    }
+
+    /* Nút xóa item xuống hàng dưới */
+    .booking-item-main .icon-button {
+        grid-column: 1 / -1;
+        width: 100%;
+        justify-content: center;
+        min-height: 36px;
+        font-size: 12px;
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    /* ── Chọn loại giá ── */
+    .booking-price-type-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .booking-price-type-btn {
+        padding: 12px 8px;
+        gap: 3px;
+    }
+
+    .booking-price-type-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .booking-price-type-btn span {
+        font-size: 12px;
+    }
+
+    .booking-price-type-btn small {
+        font-size: 10px;
+    }
+
+    /* ── Form ngày ── */
+    .booking-date-form {
+        gap: 12px;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .booking-date-row {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .booking-date-arrow {
+        display: none;
+    }
+
+    .booking-date-field input[type="date"],
+    .booking-date-field input[type="datetime-local"] {
+        font-size: 14px;
+        padding: 10px 12px;
+        width: 100%;
+    }
+
+    /* Duration info */
+    .booking-duration-info {
+        font-size: 12px;
+        padding: 8px 12px;
+    }
+
+    /* ── Total panel ── */
+    .total-panel {
+        padding: 12px 14px;
+        border-radius: 12px;
+    }
+
+    .total-panel span {
+        font-size: 13px;
+    }
+
+    .total-panel strong {
+        font-size: 18px;
+    }
+
+    .total-panel small {
+        font-size: 11px;
+    }
+
+    /* Nút đặt thuê full width nổi bật */
+    .button.primary.full {
+        min-height: 52px;
+        font-size: 16px;
+        border-radius: 14px;
+    }
+
+    /* ── Timeline (cuộn ngang) ── */
+    .booking-timeline-card {
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .booking-timeline-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Scroll hint */
+        padding-bottom: 6px;
+    }
+
+    .tl-grid {
+        min-width: 560px;
+    }
+
+    .tl-header-row,
+    .tl-row {
+        grid-template-columns: 90px 1fr;
+    }
+
+    .tl-product-label {
+        font-size: 11px;
+    }
+
+    .booking-timeline-week {
+        font-size: 11px;
+        min-width: 100px;
+    }
+
+    /* Legend compact */
+    .timeline-legend {
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        font-size: 11px;
+        margin-top: 10px;
+    }
+
+    /* Section heading trong card */
+    .section-heading.tight {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .section-heading.tight h2 {
+        font-size: 17px;
+    }
+}
+
+/* Màn rất nhỏ ≤ 390px */
+@media (max-width: 390px) {
+
+    .booking-price-type-btn span {
+        font-size: 11px;
+    }
+
+    .tl-grid {
+        min-width: 480px;
+    }
+
+    .tl-header-row,
+    .tl-row {
+        grid-template-columns: 72px 1fr;
+    }
+
+    .booking-item-main {
+        grid-template-columns: 56px 1fr;
+    }
+
+    .booking-item img {
+        width: 56px;
+    }
+
+    .total-panel strong {
+        font-size: 16px;
+    }
+}

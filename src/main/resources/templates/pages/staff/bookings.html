@@ -41,10 +41,10 @@
         </section>
 
         <section class="toolbar surface">
-            <label class="search-field">
-                <i data-lucide="search"></i>
+            <div class="toolbar-search">
+                <i data-lucide="search" class="toolbar-search-icon"></i>
                 <input data-admin-booking-search type="search" placeholder="Tìm mã đơn, tên khách, số điện thoại">
-            </label>
+            </div>
             <select class="select" data-admin-booking-status>
                 <option value="">Tất cả trạng thái</option>
             </select>
@@ -76,6 +76,35 @@
         </section>
     </section>
 </main>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BOOKING DETAIL MODAL
+     ═══════════════════════════════════════════════════════════ -->
+<div class="bmodal-overlay" id="bookingModal" aria-modal="true" role="dialog" aria-labelledby="bmodalTitle" hidden>
+    <div class="bmodal-box">
+
+        <!-- Modal header -->
+        <div class="bmodal-header">
+            <div class="bmodal-title-group">
+                <p class="eyebrow" id="bmodalEyebrow">Chi tiết đơn thuê</p>
+                <h2 id="bmodalTitle">—</h2>
+            </div>
+            <div class="bmodal-header-meta" id="bmodalMeta"></div>
+            <button class="bmodal-close" type="button" id="bmodalClose" aria-label="Đóng">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <!-- Modal body — scrollable -->
+        <div class="bmodal-body" id="bmodalBody">
+            <div class="empty-state small">
+                <i data-lucide="loader"></i>
+                <p>Đang tải...</p>
+            </div>
+        </div>
+
+    </div>
+</div>
 
 <div th:replace="~{fragments/layout :: scripts}"></div>
 </body>

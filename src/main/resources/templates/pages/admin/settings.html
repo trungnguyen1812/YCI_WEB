@@ -8,75 +8,115 @@
 <main class="admin-layout">
     <aside th:replace="~{fragments/layout :: adminSidebar}"></aside>
     <section class="admin-content">
+
         <div class="admin-heading">
             <div>
-                <p class="eyebrow">Cấu hình</p>
-                <h1>Danh mục, trạng thái và quy định</h1>
+                <p class="eyebrow">Cấu hình hệ thống</p>
+                <h1>Danh mục, trạng thái &amp; quy định</h1>
+                <p>Quản lý dữ liệu danh mục, các loại giá, trạng thái và quy định cho thuê.</p>
             </div>
         </div>
 
         <section class="settings-grid">
+
+            <!-- Danh mục thiết bị -->
             <div class="surface settings-panel">
-                <h2>Danh mục thiết bị</h2>
+                <h2>
+                    <i data-lucide="tag" style="width:15px;height:15px;"></i>
+                    Danh mục thiết bị
+                </h2>
                 <form class="inline-form" data-category-form>
                     <input type="hidden" name="idCategory">
-                    <input name="nameCategory" placeholder="Tên danh mục" required>
-                    <input name="description" placeholder="Mô tả">
-                    <button class="icon-button" type="submit" aria-label="Lưu danh mục"><i data-lucide="save"></i></button>
+                    <input name="nameCategory" placeholder="Tên danh mục..." required>
+                    <input name="description" placeholder="Mô tả ngắn...">
+                    <button class="icon-button" type="submit" aria-label="Lưu danh mục" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-category-list></div>
             </div>
 
+            <!-- Loại giá thuê -->
             <div class="surface settings-panel">
-                <h2>Loại giá thuê</h2>
+                <h2>
+                    <i data-lucide="clock" style="width:15px;height:15px;"></i>
+                    Loại giá thuê
+                </h2>
                 <form class="inline-form" data-rental-type-form>
                     <input type="hidden" name="idRentalType">
                     <input name="type" placeholder="Theo ngày, theo giờ..." required>
-                    <button class="icon-button" type="submit" aria-label="Lưu loại giá"><i data-lucide="save"></i></button>
+                    <button class="icon-button" type="submit" aria-label="Lưu loại giá" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-rental-type-list></div>
             </div>
 
+            <!-- Trạng thái hệ thống -->
             <div class="surface settings-panel">
-                <h2>Trạng thái hệ thống</h2>
+                <h2>
+                    <i data-lucide="circle-dot" style="width:15px;height:15px;"></i>
+                    Trạng thái hệ thống
+                </h2>
                 <form class="inline-form" data-status-form>
                     <input type="hidden" name="idStatus">
                     <input name="statusCode" placeholder="AVAILABLE, RENTING..." required>
-                    <button class="icon-button" type="submit" aria-label="Lưu trạng thái"><i data-lucide="save"></i></button>
+                    <button class="icon-button" type="submit" aria-label="Lưu trạng thái" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-status-list></div>
             </div>
 
+            <!-- Loại tiền cọc -->
             <div class="surface settings-panel">
-                <h2>Loại tiền cọc</h2>
+                <h2>
+                    <i data-lucide="wallet" style="width:15px;height:15px;"></i>
+                    Loại tiền cọc
+                </h2>
                 <form class="inline-form" data-deposit-form>
                     <input type="hidden" name="idDepositType">
-                    <input name="type" placeholder="Cọc 30%, cọc toàn phần" required>
-                    <input name="percentDeposit" type="number" min="0" max="100" placeholder="%" required>
-                    <button class="icon-button" type="submit" aria-label="Lưu tiền cọc"><i data-lucide="save"></i></button>
+                    <input name="type" placeholder="Cọc 30%, cọc toàn phần..." required>
+                    <input name="percentDeposit" type="number" min="0" max="100" placeholder="%" style="max-width:72px;" required>
+                    <button class="icon-button" type="submit" aria-label="Lưu tiền cọc" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-deposit-list></div>
             </div>
 
+            <!-- Quy định thuê -->
             <div class="surface settings-panel large">
-                <h2>Quy định thuê</h2>
+                <h2>
+                    <i data-lucide="scroll-text" style="width:15px;height:15px;"></i>
+                    Quy định thuê
+                </h2>
                 <form class="inline-form tall" data-rental-regulation-form>
                     <input type="hidden" name="idRentalRegulations">
-                    <textarea name="regulation" placeholder="Nội dung quy định" required></textarea>
-                    <button class="icon-button" type="submit" aria-label="Lưu quy định"><i data-lucide="save"></i></button>
+                    <textarea name="regulation" placeholder="Nội dung quy định thuê thiết bị..." required></textarea>
+                    <button class="icon-button" type="submit" aria-label="Lưu quy định" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-rental-regulation-list></div>
             </div>
 
+            <!-- Quy định giữ lịch -->
             <div class="surface settings-panel large">
-                <h2>Quy định giữ lịch</h2>
+                <h2>
+                    <i data-lucide="calendar-clock" style="width:15px;height:15px;"></i>
+                    Quy định giữ lịch
+                </h2>
                 <form class="inline-form tall" data-schedule-form>
                     <input type="hidden" name="idScheduleKeepingRegulations">
-                    <textarea name="scheduleKeepingRegulation" placeholder="Nội dung quy định giữ lịch" required></textarea>
-                    <button class="icon-button" type="submit" aria-label="Lưu quy định giữ lịch"><i data-lucide="save"></i></button>
+                    <textarea name="scheduleKeepingRegulation" placeholder="Nội dung quy định giữ lịch..." required></textarea>
+                    <button class="icon-button" type="submit" aria-label="Lưu quy định giữ lịch" title="Lưu">
+                        <i data-lucide="save"></i>
+                    </button>
                 </form>
                 <div class="compact-list" data-schedule-list></div>
             </div>
+
         </section>
     </section>
 </main>

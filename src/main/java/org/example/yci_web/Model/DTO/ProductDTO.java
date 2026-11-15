@@ -29,5 +29,6 @@ public class ProductDTO {
     private String categoryName;
     private List<ImageDTO> imageDTOS;
     private String status;
+    private Boolean active;
     private List<RentalPriceDTO> rentalPriceDTOS;
 }

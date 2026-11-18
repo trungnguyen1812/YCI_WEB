@@ -13,7 +13,7 @@ public class RefundDTO {
     private Double actualAmount;
     private String status;              // PENDING_TRANSFER | TRANSFERRED | FAILED
     private String refundBankName;
-    private String refundAccountNoMasked;
+    private String refundAccountNoMasked;  // giữ field name tương thích, trả số đầy đủ
     private String refundAccountName;
     private String transferRef;
     private String transferNote;

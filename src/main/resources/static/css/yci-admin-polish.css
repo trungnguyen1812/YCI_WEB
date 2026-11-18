@@ -801,6 +801,23 @@
     flex-shrink: 0;
 }
 
+/* Mô tả ngắn dưới tiêu đề panel */
+.settings-hint {
+    font-size: 12px;
+    color: #7b6070;
+    margin: -6px 0 0;
+    line-height: 1.55;
+}
+.settings-hint code {
+    background: rgba(243,201,220,.35);
+    color: #b41463;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-family: monospace;
+}
+.settings-hint strong { color: #2d1b26; }
+
 /* Inline form in settings */
 .inline-form {
     display: flex;

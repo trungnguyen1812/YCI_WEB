@@ -721,7 +721,7 @@ public class SepayServiceImpl implements SepayService {
         dto.setProcessedAt(e.getProcessedAt());
         dto.setCreatedAt(e.getCreatedAt());
         dto.setRefundBankName(e.getRefundBankName());
-        dto.setRefundAccountNoMasked(maskAccountNo(e.getRefundAccountNo()));
+        dto.setRefundAccountNoMasked(e.getRefundAccountNo());   // trả số đầy đủ, không che
         dto.setRefundAccountName(e.getRefundAccountName());
         dto.setTotalAmount(e.getBookingEntity().getTotalAmount());
         double paid = paymentBookingRepository.findByBookingEntity(e.getBookingEntity())
@@ -741,7 +741,7 @@ public class SepayServiceImpl implements SepayService {
         dto.setActualAmount(e.getActualAmount());
         dto.setStatus(e.getStatus());
         dto.setRefundBankName(e.getRefundBankName());
-        dto.setRefundAccountNoMasked(maskAccountNo(e.getRefundAccountNo()));
+        dto.setRefundAccountNoMasked(e.getRefundAccountNo());   // trả số đầy đủ, không che
         dto.setRefundAccountName(e.getRefundAccountName());
         dto.setTransferRef(e.getTransferRef());
         dto.setTransferNote(e.getTransferNote());

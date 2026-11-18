@@ -337,9 +337,17 @@
                     <td><strong style="color:var(--teal-dark);">${YCI.money(booking.totalAmount)}</strong></td>
                     <td><span class="status-pill ${YCI.statusClass(booking.status)}">${YCI.escapeHtml(YCI.statusLabel(booking.status))}</span></td>
                     <td>
-                        <button class="icon-button sm" type="button" data-booking-row="${booking.idBooking}" aria-label="Xem chi tiết">
-                            <i data-lucide="eye"></i>
-                        </button>
+                        <div class="button-row">
+                            <button class="icon-button sm" type="button" data-booking-row="${booking.idBooking}" aria-label="Xem chi tiết">
+                                <i data-lucide="eye"></i>
+                            </button>
+                            ${(booking.status === "CANCEL_REQUESTED" || booking.status === "CANCELLED")
+                                ? `<a class="icon-button sm" href="/admin/refunds" title="Xử lý hoàn tiền" aria-label="Xử lý hoàn tiền" style="color:var(--danger);">
+                                       <i data-lucide="hand-coins"></i>
+                                   </a>`
+                                : ""
+                            }
+                        </div>
                     </td>
                 </tr>`;
             }).join("") || `<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--muted);">Không có đơn thuê phù hợp.</td></tr>`;
@@ -2295,17 +2303,6 @@
                 sub: "description"
             },
             {
-                name: "rentalType",
-                form: "[data-rental-type-form]",
-                list: "[data-rental-type-list]",
-                load: "/api/admin/rental-type",
-                add: ["/api/admin/rental-type", "POST"],
-                update: ["/api/admin/rental-type", "PUT"],
-                remove: (item) => `/api/admin/rental-type/id=${item.idRentalType}`,
-                id: "idRentalType",
-                label: "type"
-            },
-            {
                 name: "status",
                 form: "[data-status-form]",
                 list: "[data-status-list]",
@@ -2315,18 +2312,6 @@
                 remove: (item) => `/api/admin/status/id=${item.idStatus}`,
                 id: "idStatus",
                 label: "statusCode"
-            },
-            {
-                name: "deposit",
-                form: "[data-deposit-form]",
-                list: "[data-deposit-list]",
-                load: "/api/deposit-type",
-                add: ["/api/admin/deposit-type", "POST"],
-                update: ["/api/admin/deposit-type", "PUT"],
-                remove: (item) => `/api/admin/deposit-type/id=${item.idDepositType}`,
-                id: "idDepositType",
-                label: "type",
-                sub: "percentDeposit"
             },
             {
                 name: "rentalRegulation",

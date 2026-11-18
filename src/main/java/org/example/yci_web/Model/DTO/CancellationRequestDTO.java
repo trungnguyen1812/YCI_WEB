@@ -15,9 +15,9 @@ public class CancellationRequestDTO {
     private Long idAdmin;
     private LocalDateTime processedAt;
     private LocalDateTime createdAt;
-    // Thông tin nhận hoàn (che bớt số TK)
+    // Thông tin nhận hoàn (số TK đầy đủ)
     private String refundBankName;
-    private String refundAccountNoMasked;  // e.g. "****1234"
+    private String refundAccountNoMasked;  // giữ field name để tương thích, nhưng giờ trả số đầy đủ
     private String refundAccountName;
     // Thông tin đơn
     private Double totalAmount;

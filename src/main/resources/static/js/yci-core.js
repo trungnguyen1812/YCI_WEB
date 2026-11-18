@@ -223,6 +223,8 @@
             "RENTING":            "sc-renting",
             "MAINTENANCE":        "sc-maintenance",
             "UNAVAILABLE":        "sc-unavailable",
+            // Combo
+            "PARTIAL":            "sc-maintenance",
             // Đơn thuê
             "WAITING_ACCEPT":     "sc-waiting",
             "WAITING ACCEPT":     "sc-waiting",
@@ -244,11 +246,13 @@
     function statusLabel(status) {
         const normalized = String(status || "").trim().toUpperCase();
         const labels = {
-            "AVAILABLE": "Sẵn sàng",
-            "RENTED": "Đang cho thuê",
-            "RENTING": "Đang thuê",
-            "MAINTENANCE": "Bảo trì",
-            "UNAVAILABLE": "Không khả dụng",
+            "AVAILABLE":    "Sẵn sàng",
+            "RENTED":       "Đang cho thuê",
+            "RENTING":      "Đang thuê",
+            "MAINTENANCE":  "Bảo trì",
+            "UNAVAILABLE":  "Không khả dụng",
+            // Combo
+            "PARTIAL":      "Một phần sẵn sàng",
             "WAITING ACCEPT": "Chờ xác nhận",
             "WAITING_ACCEPT": "Chờ xác nhận",
             "ACCEPTED": "Đã xác nhận",

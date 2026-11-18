@@ -27,8 +27,8 @@
                 </h2>
                 <form class="inline-form" data-category-form>
                     <input type="hidden" name="idCategory">
-                    <input name="nameCategory" placeholder="Tên danh mục..." required>
-                    <input name="description" placeholder="Mô tả ngắn...">
+                    <input name="nameCategory" type="text" placeholder="Tên danh mục..." required>
+                    <input name="description" type="text" placeholder="Mô tả ngắn...">
                     <button class="icon-button" type="submit" aria-label="Lưu danh mục" title="Lưu">
                         <i data-lucide="save"></i>
                     </button>
@@ -44,7 +44,7 @@
                 </h2>
                 <form class="inline-form" data-rental-type-form>
                     <input type="hidden" name="idRentalType">
-                    <input name="type" placeholder="Theo ngày, theo giờ..." required>
+                    <input name="type" type="text" placeholder="Theo ngày, theo giờ..." required>
                     <button class="icon-button" type="submit" aria-label="Lưu loại giá" title="Lưu">
                         <i data-lucide="save"></i>
                     </button>
@@ -60,7 +60,7 @@
                 </h2>
                 <form class="inline-form" data-status-form>
                     <input type="hidden" name="idStatus">
-                    <input name="statusCode" placeholder="AVAILABLE, RENTING..." required>
+                    <input name="statusCode" type="text" placeholder="AVAILABLE, RENTING..." required>
                     <button class="icon-button" type="submit" aria-label="Lưu trạng thái" title="Lưu">
                         <i data-lucide="save"></i>
                     </button>
@@ -76,7 +76,7 @@
                 </h2>
                 <form class="inline-form" data-deposit-form>
                     <input type="hidden" name="idDepositType">
-                    <input name="type" placeholder="Cọc 30%, cọc toàn phần..." required>
+                    <input name="type" type="text" placeholder="Cọc 30%, cọc toàn phần..." required>
                     <input name="percentDeposit" type="number" min="0" max="100" placeholder="%" style="max-width:72px;" required>
                     <button class="icon-button" type="submit" aria-label="Lưu tiền cọc" title="Lưu">
                         <i data-lucide="save"></i>

@@ -10,6 +10,7 @@
     <link rel="stylesheet" th:href="@{/css/yci-theme.css}">
     <link rel="stylesheet" th:href="@{/css/yci-admin-polish.css}">
     <link rel="stylesheet" th:href="@{/css/yci-mobile.css}">
+    <link rel="stylesheet" th:href="@{/css/quill.snow.css}">
     <link rel="icon" th:href="@{/images/logo.png}">
 </head>
 <body>
@@ -22,8 +23,40 @@
         </span>
     </a>
     <nav class="site-nav" aria-label="Điều hướng chính">
-        <a th:href="@{/}" th:classappend = "${pageName == 'home'} ? 'is-active'">Trang chủ</a>
-        <a th:href="@{/products}" th:classappend="${pageName == 'catalog' || pageName == 'product-detail'} ? 'is-active' : ''">Thiết bị</a>
+        <a th:href="@{/}" th:classappend="${pageName == 'home'} ? 'is-active'">Trang chủ</a>
+
+        <!-- Dropdown Thiết bị -->
+        <div class="nav-dropdown-wrap" th:classappend="${pageName == 'catalog' || pageName == 'product-detail' || pageName == 'catalog-combos' || pageName == 'combo-detail'} ? 'is-active' : ''">
+            <button class="nav-dropdown-trigger" type="button" aria-haspopup="true">
+                Thiết bị <i data-lucide="chevron-down"></i>
+            </button>
+            <div class="nav-dropdown-menu">
+                <a th:href="@{/products/cameras}">
+                    <span class="nav-dd-icon"><i data-lucide="camera"></i></span>
+                    <span class="nav-dd-text">
+                        <strong>Máy ảnh</strong>
+                        <small>Mirrorless, DSLR, Fullframe</small>
+                    </span>
+                </a>
+                <a th:href="@{/products/accessories}">
+                    <span class="nav-dd-icon"><i data-lucide="aperture"></i></span>
+                    <span class="nav-dd-text">
+                        <strong>Phụ kiện</strong>
+                        <small>Ống kính, đèn flash, tripod</small>
+                    </span>
+                </a>
+                <div class="nav-dd-divider"></div>
+                <a th:href="@{/products/combos}" class="nav-dd-highlight">
+                    <span class="nav-dd-icon"><i data-lucide="package"></i></span>
+                    <span class="nav-dd-text">
+                        <strong>Combo ưu đãi</strong>
+                        <small>Trọn bộ — giá tốt hơn thuê lẻ</small>
+                    </span>
+                    <span class="nav-dd-badge">HOT</span>
+                </a>
+            </div>
+        </div>
+
         <a th:href="@{/pricing}" th:classappend="${pageName == 'pricing'} ? 'is-active' : ''">Bảng giá</a>
         <a th:href="@{/regulations}" th:classappend="${pageName == 'regulations'} ? 'is-active' : ''">Quy định</a>
         <a th:if="${currentUser == null or currentUser.role == null or currentUser.role != 0}" th:href="@{/booking}" th:classappend="${pageName == 'booking'} ? 'is-active' : ''">Đặt thuê</a>
@@ -85,6 +118,9 @@
     </a>
     <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" class="admin-link" th:classappend="${pageName == 'admin-products'} ? 'is-active' : ''" th:href="@{/admin/products}">
         <i data-lucide="camera"></i><span>Thiết bị</span>
+    </a>
+    <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" class="admin-link" th:classappend="${pageName == 'admin-combos'} ? 'is-active' : ''" th:href="@{/admin/combos}">
+        <i data-lucide="package"></i><span>Combo</span>
     </a>
     <a th:if="${currentUser != null and currentUser.role != null and currentUser.role == 0}" class="admin-link" th:classappend="${pageName == 'admin-customers'} ? 'is-active' : ''" th:href="@{/admin/customers}">
         <i data-lucide="users"></i><span>Khách hàng</span>
@@ -171,6 +207,45 @@
             });
         })();
 
+        // ── Nav Dropdown — click toggle + đóng khi click ngoài ───
+        (function () {
+            const wrap = document.querySelector(".nav-dropdown-wrap");
+            if (!wrap) return;
+            const trigger = wrap.querySelector(".nav-dropdown-trigger");
+            const menu    = wrap.querySelector(".nav-dropdown-menu");
+            if (!trigger || !menu) return;
+
+            let closeTimer = null;
+
+            function openMenu() {
+                clearTimeout(closeTimer);
+                wrap.classList.add("is-open");
+            }
+            function scheduleClose() {
+                closeTimer = setTimeout(() => wrap.classList.remove("is-open"), 120);
+            }
+
+            // Hover mở/giữ
+            wrap.addEventListener("mouseenter", openMenu);
+            wrap.addEventListener("mouseleave", scheduleClose);
+
+            // Click toggle (mobile / keyboard)
+            trigger.addEventListener("click", (e) => {
+                e.stopPropagation();
+                wrap.classList.toggle("is-open");
+            });
+
+            // Click link trong menu → đóng
+            menu.addEventListener("click", () => {
+                wrap.classList.remove("is-open");
+            });
+
+            // Click ra ngoài → đóng
+            document.addEventListener("click", (e) => {
+                if (!wrap.contains(e.target)) wrap.classList.remove("is-open");
+            });
+        })();
+
         // ── Scroll-reveal animation ───────────────────────────
         (function () {
             const els = document.querySelectorAll("[data-anim]");
@@ -186,6 +261,8 @@
     <!-- QR: tạo mã cho khách (qrcodejs) + quét mã cho nhân viên (html5-qrcode) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <!-- Quill rich text editor -->
+    <script th:src="@{/js/quill.min.js}"></script>
     <script th:src="@{/js/yci-core.js}"></script>
     <script th:src="@{/js/yci-public.js}"></script>
     <script th:src="@{/js/yci-admin.js}"></script>

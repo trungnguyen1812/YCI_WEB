@@ -8,11 +8,13 @@
     }
 
     function bootHome() {
-        Promise.all([loadProducts(), loadCategories()])
-            .then(([products, categories]) => {
+        Promise.all([loadProducts(), loadCategories(), YCI.apiGet("/api/combo")])
+            .then(([products, categories, comboResponse]) => {
                 const available = products.filter((item) => String(item.status || "").toUpperCase().includes("AVAILABLE"));
                 const featured = YCI.qs("[data-featured-products]");
                 const strip = YCI.qs("[data-category-strip]");
+                const comboGrid = YCI.qs("[data-combo-home-grid]");
+                const comboSection = document.getElementById("combos");
 
                 YCI.qs("[data-stat-products]").textContent = products.length;
                 YCI.qs("[data-stat-categories]").textContent = categories.length;
@@ -24,7 +26,79 @@
                         <p class="muted">${YCI.escapeHtml(category.description || "Thiết bị phù hợp cho nhiều lịch chụp.")}</p>
                     </a>
                 `).join("");
+                // ── Combo section ───────────────────────────────────
+                const combos = YCI.unwrapList(comboResponse).filter(c => c.active);
+                if (!combos.length) {
+                    if (comboSection) comboSection.hidden = true;
+                } else {
+                    if (comboSection) comboSection.hidden = false;
+                    comboGrid.innerHTML = combos.slice(0, 4).map((combo) => {
+                        const thumb = combo.imageDTOS?.[0]?.imageBase64
+                            ? (combo.imageDTOS[0].imageBase64.startsWith("data:") ? combo.imageDTOS[0].imageBase64 : "data:image/jpeg;base64," + combo.imageDTOS[0].imageBase64)
+                            : null;
+                        const origPerDay  = combo.totalPricePerDay || 0;
+                        const dealPerDay  = combo.discountPrice || 0;
+                        const saving      = origPerDay > 0 ? origPerDay - dealPerDay : 0;
+                        const savingPct   = origPerDay > 0 ? Math.round((saving / origPerDay) * 100) : 0;
+                        const badgeText   = savingPct > 0 ? `Tiết kiệm ${savingPct}%` : (saving > 0 ? `Tiết kiệm ${YCI.money(saving)}` : "Combo ưu đãi");
+                        const productNames = (combo.products || []).map(p => YCI.escapeHtml(p.nameProduct)).join(" · ");
+                        const statusHtml  = combo.comboStatus && combo.comboStatus !== "AVAILABLE"
+                            ? `<span class="status-pill ${YCI.statusClass(combo.comboStatus)}" style="position:absolute;top:14px;right:14px;z-index:2;">${YCI.escapeHtml(YCI.statusLabel(combo.comboStatus))}</span>`
+                            : "";
+                        return `
+                            <article class="combo-home-card">
+                                <div class="combo-home-badge">
+                                    <i data-lucide="tag"></i> ${badgeText}
+                                </div>
+                                ${statusHtml}
+                                <a class="combo-home-media ${thumb ? "" : "is-placeholder"}" href="/combos/${combo.idCombo}">
+                                    ${thumb
+                                        ? `<img src="${thumb}" alt="${YCI.escapeHtml(combo.nameCombo)}">`
+                                        : `<div class="combo-home-media-ph"><i data-lucide="package"></i></div>`
+                                    }
+                                </a>
+                                <div class="combo-home-body">
+                                    <h3><a href="/combos/${combo.idCombo}">${YCI.escapeHtml(combo.nameCombo)}</a></h3>
+                                    <div class="combo-home-items">
+                                        <i data-lucide="layers"></i>
+                                        <span>${productNames || "Xem chi tiết combo"}</span>
+                                    </div>
+                                    <div class="combo-home-price">
+                                        ${origPerDay > 0 ? `<s class="combo-home-orig">${YCI.money(origPerDay)}</s>` : ""}
+                                        <div>
+                                            <strong class="combo-home-deal">${YCI.money(dealPerDay)}</strong>
+                                            <span class="combo-home-unit">/ngày</span>
+                                        </div>
+                                    </div>
+                                    ${combo.comboStatus === "RENTING" || combo.comboStatus === "UNAVAILABLE"
+                                        ? `<button class="button full" disabled style="opacity:.55;cursor:not-allowed;border-radius:12px;">
+                                                <i data-lucide="clock"></i> ${YCI.statusLabel(combo.comboStatus)}
+                                           </button>`
+                                        : `<a class="button primary full combo-home-cta" href="/combos/${combo.idCombo}" data-combo-id="${combo.idCombo}">
+                                                <i data-lucide="calendar-plus"></i> Đặt combo này
+                                           </a>`
+                                    }                                </div>
+                            </article>
+                        `;
+                    }).join("");
 
+                    // Gắn event "Đặt combo" cho từng card
+                    comboGrid.querySelectorAll("[data-combo-id]").forEach(btn => {
+                        btn.addEventListener("click", async (e) => {
+                            e.preventDefault();
+                            const comboId = Number(btn.dataset.comboId);
+                            const c = combos.find(x => x.idCombo === comboId);
+                            if (!c) return;
+                            if (c.comboStatus === "RENTING" || c.comboStatus === "UNAVAILABLE") {
+                                YCI.toast("Combo này hiện đang được thuê hoặc không khả dụng.", "error");
+                                return;
+                            }
+                            await addComboToCart(c);
+                        });
+                    });
+                }
+
+                // ── Featured products ────────────────────────────────
                 const featuredProducts = [...products].sort((left, right) => {
                     return Number((right.imageDTOS || []).length > 0) - Number((left.imageDTOS || []).length > 0);
                 });
@@ -35,6 +109,9 @@
     }
 
     function bootCatalog() {
+        // Lấy loại catalog từ data attribute trên body
+        const catalogType = document.body.dataset.catalogType || "all";
+
         const state = {
             products: [],
             categories: [],
@@ -47,6 +124,22 @@
         const searchInput = YCI.qs("[data-product-search]");
         const statusFilter = YCI.qs("[data-status-filter]");
         const categoryFilter = YCI.qs("[data-category-filter]");
+
+        // Keyword lọc theo loại catalog
+        const CATALOG_KEYWORDS = {
+            cameras: ["máy ảnh", "camera", "mirrorless", "dslr", "fullframe"],
+            accessories: ["ống kính", "lens", "đèn", "flash", "tripod", "phụ kiện", "filter", "bag", "túi", "hood", "cap"]
+        };
+
+        function matchesCatalogType(product) {
+            if (catalogType === "all") return true;
+            const keywords = CATALOG_KEYWORDS[catalogType];
+            if (!keywords) return true;
+            const text = YCI.cleanText([
+                product.nameProduct, product.brand, product.categoryName, product.description
+            ].join(" ")).toLowerCase();
+            return keywords.some(kw => text.includes(kw));
+        }
 
         function renderFilters() {
             const buttons = [{ idCategory: "", nameCategory: "Tất cả" }, ...state.categories];
@@ -66,12 +159,14 @@
                 const matchSearch = !keyword || text.includes(keyword);
                 const matchCategory = !state.category || String(product.categoryId) === String(state.category);
                 const matchStatus = !state.status || String(product.status || "").toUpperCase().includes(state.status);
-                return matchSearch && matchCategory && matchStatus;
+                const matchType = matchesCatalogType(product);
+                return matchSearch && matchCategory && matchStatus && matchType;
             });
             list.innerHTML = filtered.map(YCI.productCard).join("");
             empty.hidden = filtered.length > 0;
-            YCI.qs("[data-catalog-count]").textContent = state.products.length;
-            YCI.qs("[data-catalog-available]").textContent = state.products.filter((item) => String(item.status || "").toUpperCase().includes("AVAILABLE")).length;
+            YCI.qs("[data-catalog-count]").textContent = state.products.filter(matchesCatalogType).length;
+            YCI.qs("[data-catalog-available]").textContent = state.products
+                .filter(p => matchesCatalogType(p) && String(p.status || "").toUpperCase().includes("AVAILABLE")).length;
             YCI.updateCartCount();
             YCI.iconRefresh();
         }
@@ -159,60 +254,89 @@
     }
 
     function bootPricing() {
-        function depositTitle(type) {
-            const normalized = String(type || "").trim().toUpperCase();
-            const labels = {
-                BOOKING_EARLY: "Đặt sớm",
-                BOOKING_NEAR: "Đặt gần ngày",
-                HOLIDAY_BOOKING: "Ngày lễ / cao điểm",
-                FULL_DEPOSIT: "Cọc toàn phần",
-                PARTIAL_DEPOSIT: "Cọc một phần"
-            };
-            return labels[normalized] || YCI.cleanText(type || "Chính sách cọc");
-        }
 
-        function depositDescription(deposit) {
-            const percent = Number(deposit.percentDeposit || 0);
-            const title = String(deposit.type || "").toUpperCase();
-            if (title.includes("EARLY")) {
-                return `Giữ lịch sớm với mức cọc ${percent}% để YCI khóa thiết bị cho ngày chụp.`;
-            }
-            if (title.includes("NEAR")) {
-                return `Áp dụng khi lịch thuê sát ngày, mức cọc ${percent}% giúp xác nhận nhanh thiết bị.`;
-            }
-            if (title.includes("HOLIDAY")) {
-                return `Lịch cao điểm hoặc ngày lễ có thể yêu cầu cọc ${percent}% trước khi giữ máy.`;
-            }
-            return `Mức cọc ${percent}% trên tổng giá thuê, được nhân viên áp dụng khi xác nhận đơn.`;
-        }
+        Promise.all([
+            loadProducts(),
+            YCI.apiGet("/api/deposit-type"),
+            YCI.apiGet("/api/admin/rental-regulation")
+        ])
+            .then(([products, depositResponse, regulationResponse]) => {
 
-        Promise.all([loadProducts(), YCI.apiGet("/api/deposit-type")])
-            .then(([products, depositResponse]) => {
-                YCI.qs("[data-pricing-table]").innerHTML = products.length ? products.map((product) => `
-                    <tr>
-                        <td data-label="Thiết bị"><strong>${YCI.escapeHtml(product.nameProduct)}</strong><br><span class="muted">${YCI.escapeHtml(product.brand || "YCI Camera")}</span></td>
-                        <td data-label="Danh mục">${YCI.escapeHtml(product.categoryName || "-")}</td>
-                        <td data-label="Tình trạng"><span class="status-pill ${YCI.statusClass(product.status)}">${YCI.escapeHtml(YCI.statusLabel(product.status))}</span></td>
-                        <td data-label="Giá thuê">${(product.rentalPriceDTOS || []).map((price) => `<span class="price-chip">${YCI.escapeHtml(price.rentalType)} ${YCI.money(price.price)}</span>`).join(" ") || `<span class="price-chip subtle">Chưa có giá</span>`}</td>
-                        <td data-label="Cọc tham chiếu"><strong>${YCI.money(product.depositPrice)}</strong></td>
-                    </tr>
-                `).join("") : `<tr><td colspan="5"><div class="empty-state small"><i data-lucide="tag"></i><h3>Chưa có bảng giá</h3><p>Khi quản trị thêm thiết bị và giá thuê, dữ liệu sẽ hiển thị tại đây.</p></div></td></tr>`;
+                // ── Bảng giá ──────────────────────────────────────────
+                YCI.qs("[data-pricing-table]").innerHTML = products.length
+                    ? products.map((product) => `
+                        <tr>
+                            <td data-label="Thiết bị"><strong>${YCI.escapeHtml(product.nameProduct)}</strong><br><span class="muted">${YCI.escapeHtml(product.brand || "YCI Camera")}</span></td>
+                            <td data-label="Danh mục">${YCI.escapeHtml(product.categoryName || "-")}</td>
+                            <td data-label="Tình trạng"><span class="status-pill ${YCI.statusClass(product.status)}">${YCI.escapeHtml(YCI.statusLabel(product.status))}</span></td>
+                            <td data-label="Giá thuê">${(product.rentalPriceDTOS || []).map((price) => `<span class="price-chip">${YCI.escapeHtml(price.rentalType)} ${YCI.money(price.price)}</span>`).join(" ") || `<span class="price-chip subtle">Chưa có giá</span>`}</td>
+                            <td data-label="Cọc tham chiếu"><strong>${YCI.money(product.depositPrice)}</strong></td>
+                        </tr>
+                    `).join("")
+                    : `<tr><td colspan="5"><div class="empty-state small"><i data-lucide="tag"></i><h3>Chưa có bảng giá</h3><p>Khi quản trị thêm thiết bị và giá thuê, dữ liệu sẽ hiển thị tại đây.</p></div></td></tr>`;
+
+                // ── Chính sách cọc ─────────────────────────────────────
+                const depositIcons = ["shield", "diamond", "star", "zap", "award"];
+                const depositColors = [
+                    { bg: "linear-gradient(135deg,#fff0f7,#fff)", accent: "#e91e83" },
+                    { bg: "linear-gradient(135deg,#f0f7ff,#fff)", accent: "#4f6fae" },
+                    { bg: "linear-gradient(135deg,#f0fff8,#fff)", accent: "#1c8f65" },
+                    { bg: "linear-gradient(135deg,#fffbf0,#fff)", accent: "#b06a00" },
+                    { bg: "linear-gradient(135deg,#f7f0ff,#fff)", accent: "#7c3aed" }
+                ];
                 const deposits = YCI.unwrapList(depositResponse);
-                const fallbackDeposits = [
+                const depositList = deposits.length ? deposits : [
                     { type: "Đặt lịch tiêu chuẩn", percentDeposit: 30 },
                     { type: "Thiết bị giá trị cao", percentDeposit: 50 },
-                    { type: "Lịch cao điểm", percentDeposit: 70 }
+                    { type: "Lịch cao điểm / ngày lễ", percentDeposit: 70 }
                 ];
-                YCI.qs("[data-deposit-types]").innerHTML = (deposits.length ? deposits : fallbackDeposits).map((deposit) => `
-                    <article class="info-card">
-                        <span class="price-chip subtle">${Number(deposit.percentDeposit || 0)}%</span>
-                        <h3>${YCI.escapeHtml(depositTitle(deposit.type))}</h3>
-                        <p class="muted">${YCI.escapeHtml(depositDescription(deposit))}</p>
-                    </article>
-                `).join("");
+                const depositEl = YCI.qs("[data-deposit-types]");
+                if (depositEl) {
+                    depositEl.innerHTML = depositList.map((deposit, idx) => {
+                        const color = depositColors[idx % depositColors.length];
+                        const icon = depositIcons[idx % depositIcons.length];
+                        const pct = Number(deposit.percentDeposit || 0);
+                        return `
+                            <article class="pricing-deposit-card" style="background:${color.bg}">
+                                <div class="pricing-deposit-icon" style="color:${color.accent};background:${color.accent}18">
+                                    <i data-lucide="${icon}"></i>
+                                </div>
+                                <div class="pricing-deposit-pct" style="color:${color.accent}">${pct}%</div>
+                                <h3>${YCI.escapeHtml(deposit.type || "Chính sách cọc")}</h3>
+                                <p>Mức cọc ${pct}% trên tổng giá thuê, áp dụng khi nhân viên xác nhận đơn.</p>
+                            </article>
+                        `;
+                    }).join("");
+                }
+
+                // ── Quy định thuê từ hệ thống ──────────────────────────
+                const regulationItems = YCI.unwrapList(regulationResponse)
+                    .map((item) => item.regulation)
+                    .filter(Boolean);
+                const regulationEl = YCI.qs("[data-pricing-regulations]");
+                if (regulationEl) {
+                    if (regulationItems.length) {
+                        regulationEl.innerHTML = regulationItems.map((text) => `
+                            <div class="pricing-reg-item">
+                                <span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span>
+                                <p>${YCI.escapeHtml(text)}</p>
+                            </div>
+                        `).join("");
+                    } else {
+                        regulationEl.innerHTML = `
+                            <div class="pricing-reg-item"><span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span><p>Khách cần đăng nhập và cung cấp thông tin liên hệ hợp lệ khi tạo đơn thuê.</p></div>
+                            <div class="pricing-reg-item"><span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span><p>Mỗi đơn có thể gồm nhiều thiết bị; giá thuê tính theo gói giờ hoặc ngày đã chọn.</p></div>
+                            <div class="pricing-reg-item"><span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span><p>YCI giữ thiết bị sau khi nhân viên xác nhận đơn và khách hoàn thành đặt cọc.</p></div>
+                            <div class="pricing-reg-item"><span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span><p>Thiết bị cần trả đúng giờ; phí trả trễ được tính theo thực tế tại thời điểm hoàn trả.</p></div>
+                            <div class="pricing-reg-item"><span class="pricing-reg-dot"><i data-lucide="check-circle-2"></i></span><p>Hư hỏng phát sinh được thông báo và xử lý theo quy định cửa hàng trước khi tất toán.</p></div>
+                        `;
+                    }
+                }
+
                 YCI.iconRefresh();
             })
             .catch((error) => YCI.toast(error.message, "error"));
+
     }
 
     function bootRegulations() {
@@ -287,19 +411,38 @@
 
         function ruleCard(group, items, isFallback = false) {
             const lines = items && items.length ? items : group.items;
+            const colorMap = {
+                rental:   { accent: "#e91e83", bg: "rgba(233,30,131,.08)",  light: "#fff0f7" },
+                schedule: { accent: "#4f6fae", bg: "rgba(79,111,174,.08)", light: "#f0f7ff" },
+                pickup:   { accent: "#1c8f65", bg: "rgba(28,143,101,.08)", light: "#f0fff8" },
+                return:   { accent: "#b06a00", bg: "rgba(176,106,0,.08)",  light: "#fffbf0" },
+                fees:     { accent: "#bd1f54", bg: "rgba(189,31,84,.08)",  light: "#fff0f4" },
+                payment:  { accent: "#7c3aed", bg: "rgba(124,58,237,.08)", light: "#f7f0ff" }
+            };
+            const c = colorMap[group.key] || colorMap.rental;
             return `
-                <article class="rule-card">
-                    <div class="rule-card-head">
-                        <span class="rule-icon"><i data-lucide="${group.icon}"></i></span>
+                <article class="reg-card" id="${group.key}">
+                    <div class="reg-card-header" style="background:${c.light}">
+                        <span class="reg-card-icon" style="background:${c.bg};color:${c.accent}">
+                            <i data-lucide="${group.icon}"></i>
+                        </span>
                         <div>
-                            <p class="eyebrow">${YCI.escapeHtml(group.eyebrow)}</p>
-                            <h2>${YCI.escapeHtml(group.title)}</h2>
+                            <p class="reg-card-eyebrow" style="color:${c.accent}">${YCI.escapeHtml(group.eyebrow)}</p>
+                            <h2 class="reg-card-title">${YCI.escapeHtml(group.title)}</h2>
                         </div>
                     </div>
-                    <div class="rule-list">
-                        ${lines.map((line, index) => `<div class="rule-item"><strong>${index + 1}.</strong><span>${YCI.escapeHtml(line)}</span></div>`).join("")}
+                    <div class="reg-card-body">
+                        <ol class="reg-list">
+                            ${lines.map((line) => `
+                                <li class="reg-list-item">
+                                    <span class="reg-list-dot" style="background:${c.accent}18;color:${c.accent}">
+                                        <i data-lucide="check"></i>
+                                    </span>
+                                    <span>${YCI.escapeHtml(line)}</span>
+                                </li>
+                            `).join("")}
+                        </ol>
                     </div>
-                    ${isFallback ? `<p class="field-note">Nội dung tạm hiển thị khi backend chưa có dữ liệu cho nhóm này.</p>` : ""}
                 </article>
             `;
         }
@@ -322,6 +465,22 @@
                     return ruleCard(group, group.items, true);
                 }).join("");
                 YCI.iconRefresh();
+
+                // Highlight active sidebar link on scroll
+                const navLinks = document.querySelectorAll(".reg-nav-link");
+                if (navLinks.length) {
+                    const cards = document.querySelectorAll(".reg-card[id]");
+                    const observer = new IntersectionObserver((entries) => {
+                        entries.forEach((entry) => {
+                            if (entry.isIntersecting) {
+                                navLinks.forEach((l) => l.classList.remove("is-active"));
+                                const active = document.querySelector(`.reg-nav-link[href="#${entry.target.id}"]`);
+                                if (active) active.classList.add("is-active");
+                            }
+                        });
+                    }, { rootMargin: "-30% 0px -60% 0px" });
+                    cards.forEach((c) => observer.observe(c));
+                }
             })
             .catch((error) => YCI.toast(error.message, "error"));
     }
@@ -346,11 +505,47 @@
         const inputTimeStart = document.getElementById("inputTimeStart");
         const inputTimeEnd   = document.getElementById("inputTimeEnd");
 
+        // ── Detect combo-booking flag NGAY ĐẦU (trước mọi render) ──────
+        let comboBookingInfo = null;
+        try {
+            const raw = sessionStorage.getItem("yci.combo-booking");
+            if (raw) {
+                comboBookingInfo = JSON.parse(raw);
+                sessionStorage.removeItem("yci.combo-booking");
+            }
+        } catch (e) {}
+
         let products = [], selectedProducts = [], allBookings = [];
-        let priceType = "hourly";
+        // Nếu đặt combo → bắt buộc daily, không cho đổi
+        let priceType = comboBookingInfo ? "daily" : "hourly";
         let rentalTypesList = [];
         let tlViewDate = new Date();
         let tlWeekOffset = 0;
+
+        // Nếu có combo → switch UI ngay, trước khi render
+        if (comboBookingInfo) {
+            document.querySelectorAll("[data-price-type]").forEach(b => {
+                b.classList.toggle("is-active", b.dataset.priceType === "daily");
+            });
+            if (dateRowDaily)  dateRowDaily.hidden  = false;
+            if (dateRowHourly) dateRowHourly.hidden = true;
+            const priceTypeRow = document.querySelector(".booking-price-type-row");
+            if (priceTypeRow) {
+                priceTypeRow.innerHTML = `
+                    <div class="combo-booking-banner">
+                        <i data-lucide="package"></i>
+                        <div class="combo-booking-banner-info">
+                            <strong>${YCI.escapeHtml(comboBookingInfo.nameCombo || "Combo")}</strong>
+                            <span>Chỉ thuê theo <strong>ngày</strong>. Chọn ngày bắt đầu và kết thúc bên dưới.</span>
+                        </div>
+                        <div class="combo-booking-price">
+                            <strong>${YCI.money(comboBookingInfo.discountPrice)}</strong>
+                            <small>/ngày</small>
+                        </div>
+                    </div>`;
+                YCI.iconRefresh();
+            }
+        }
 
         const pad = n => String(n).padStart(2, "0");
         const dateStr = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
@@ -383,6 +578,10 @@
         function calcTotal() {
             if (priceType === "daily") {
                 const d = calcDailyDays();
+                // Nếu đặt combo: dùng discountPrice của combo thay vì tổng lẻ
+                if (comboBookingInfo && comboBookingInfo.discountPrice) {
+                    return comboBookingInfo.discountPrice * d;
+                }
                 return selectedProducts.reduce((s,p) => s + dailyPrice(p)*d, 0);
             }
             const h = calcHourlyHours();
@@ -394,11 +593,19 @@
 
         function updateTotals() {
             totalNode.textContent = YCI.money(calcTotal());
+            // Cọc: với combo dùng tổng cọc các thiết bị, với lẻ như bình thường
             depositRefNode.textContent = YCI.money(selectedProducts.reduce((s,p) => s+Number(p.depositPrice||0), 0));
             if (priceType === "daily") {
                 const d = calcDailyDays();
-                if (d > 0) { durationText.textContent = `${d} ngày · ${fmtDate(inputDateStart.value)} → ${fmtDate(inputDateEnd.value)}`; durationInfo.hidden = false; }
-                else durationInfo.hidden = true;
+                if (d > 0) {
+                    const priceLabel = comboBookingInfo
+                        ? `${YCI.money(comboBookingInfo.discountPrice)} × ${d} ngày`
+                        : `${d} ngày`;
+                    durationText.textContent = `${priceLabel} · ${fmtDate(inputDateStart.value)} → ${fmtDate(inputDateEnd.value)}`;
+                    durationInfo.hidden = false;
+                } else {
+                    durationInfo.hidden = true;
+                }
             } else {
                 const h = calcHourlyHours();
                 if (h > 0) { durationText.textContent = `${h} giờ · ${fmtDT(inputTimeStart.value)} → ${fmtDT(inputTimeEnd.value)}`; durationInfo.hidden = false; }
@@ -410,17 +617,31 @@
             const ids = YCI.readCart();
             selectedProducts = ids.map(id => products.find(p => Number(p.idProduct)===Number(id))).filter(Boolean);
             emptyNode.hidden = selectedProducts.length > 0;
-            cartNode.innerHTML = selectedProducts.map(p => {
-                const pH = hourlyPrice(p), pD = dailyPrice(p);
-                const chips = [pH?`<span class="price-chip">${YCI.money(pH)} / giờ</span>`:null, pD?`<span class="price-chip" style="background:#e8f0fe;color:#1a56db;">${YCI.money(pD)} / ngày</span>`:null].filter(Boolean).join("")||`<span class="price-chip subtle">Chưa có giá</span>`;
-                return `<article class="booking-item"><div class="booking-item-main">
-                    <img src="${YCI.productImage(p)}" alt="${YCI.escapeHtml(p.nameProduct)}" ${YCI.imageFallbackAttribute()}>
-                    <div><strong>${YCI.escapeHtml(p.nameProduct)}</strong><p class="muted">${YCI.escapeHtml(p.categoryName||"")} · ${YCI.escapeHtml(p.brand||"")}</p>
-                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${chips}</div>
-                    <span class="price-chip subtle" style="margin-top:4px;">Cọc ${YCI.money(p.depositPrice)}</span></div>
-                    <button class="icon-button danger" type="button" data-remove-cart="${p.idProduct}" aria-label="Xóa"><i data-lucide="x"></i></button>
-                </div></article>`;
-            }).join("");
+
+            if (comboBookingInfo) {
+                // Chế độ combo — hiện danh sách thiết bị nhưng không hiện giá lẻ
+                cartNode.innerHTML = selectedProducts.map(p => `
+                    <article class="booking-item"><div class="booking-item-main">
+                        <img src="${YCI.productImage(p)}" alt="${YCI.escapeHtml(p.nameProduct)}" ${YCI.imageFallbackAttribute()}>
+                        <div>
+                            <strong>${YCI.escapeHtml(p.nameProduct)}</strong>
+                            <p class="muted">${YCI.escapeHtml(p.categoryName||"")} · ${YCI.escapeHtml(p.brand||"")}</p>
+                            <span class="price-chip" style="background:#fff0f7;color:#b41463;margin-top:4px;">Giá tính theo combo</span>
+                        </div>
+                    </div></article>`).join("");
+            } else {
+                cartNode.innerHTML = selectedProducts.map(p => {
+                    const pH = hourlyPrice(p), pD = dailyPrice(p);
+                    const chips = [pH?`<span class="price-chip">${YCI.money(pH)} / giờ</span>`:null, pD?`<span class="price-chip" style="background:#e8f0fe;color:#1a56db;">${YCI.money(pD)} / ngày</span>`:null].filter(Boolean).join("")||`<span class="price-chip subtle">Chưa có giá</span>`;
+                    return `<article class="booking-item"><div class="booking-item-main">
+                        <img src="${YCI.productImage(p)}" alt="${YCI.escapeHtml(p.nameProduct)}" ${YCI.imageFallbackAttribute()}>
+                        <div><strong>${YCI.escapeHtml(p.nameProduct)}</strong><p class="muted">${YCI.escapeHtml(p.categoryName||"")} · ${YCI.escapeHtml(p.brand||"")}</p>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">${chips}</div>
+                        <span class="price-chip subtle" style="margin-top:4px;">Cọc ${YCI.money(p.depositPrice)}</span></div>
+                        <button class="icon-button danger" type="button" data-remove-cart="${p.idProduct}" aria-label="Xóa"><i data-lucide="x"></i></button>
+                    </div></article>`;
+                }).join("");
+            }
             updateTotals(); renderTimeline(); YCI.iconRefresh();
         }
 
@@ -430,8 +651,8 @@
         // ── Price type toggle ─────────────────────────────────
         document.querySelectorAll("[data-price-type]").forEach(btn => {
             btn.addEventListener("click", () => {
-                document.querySelectorAll("[data-price-type]").forEach(b => b.classList.remove("is-active"));
-                btn.classList.add("is-active");
+                if (comboBookingInfo) return; // lock khi đặt combo
+                document.querySelectorAll("[data-price-type]").forEach(b => b.classList.remove("is-active"));                btn.classList.add("is-active");
                 priceType = btn.dataset.priceType;
                 dateRowDaily.hidden = priceType !== "daily";
                 dateRowHourly.hidden = priceType !== "hourly";
@@ -610,7 +831,7 @@
                 if (!inputDateStart.value || !inputDateEnd.value) { YCI.toast("Vui lòng chọn ngày.", "error"); return; }
                 if (new Date(inputDateStart.value) < new Date(todayStr)) { YCI.toast("Ngày bắt đầu không được ở trong quá khứ.", "error"); return; }
                 if (inputDateEnd.value <= inputDateStart.value) { YCI.toast("Ngày kết thúc phải sau ngày bắt đầu.", "error"); return; }
-                payload = { timeStart:toBackend(inputDateStart.value), timeEnd:toBackend(inputDateEnd.value), note:form.elements.note.value||"", userId:Number(form.elements.userId.value), totalAmount:calcTotal(), idRentalType:rt.idRentalType, productIds:selectedProducts.map(p=>p.idProduct) };
+                payload = { timeStart:toBackend(inputDateStart.value), timeEnd:toBackend(inputDateEnd.value), note:form.elements.note.value||"", userId:Number(form.elements.userId.value), totalAmount:calcTotal(), idRentalType:rt.idRentalType, productIds:selectedProducts.map(p=>p.idProduct), comboPrice: comboBookingInfo ? comboBookingInfo.discountPrice : null };
             } else {
                 if (!inputTimeStart.value || !inputTimeEnd.value) { YCI.toast("Vui lòng chọn giờ.", "error"); return; }
                 if (new Date(inputTimeStart.value) < now) { YCI.toast("Giờ bắt đầu không được ở trong quá khứ.", "error"); return; }
@@ -1127,11 +1348,262 @@
             .catch((error) => YCI.toast(error.message, "error"));
     }
 
+    // ── Helper: thêm tất cả sản phẩm combo vào cart + redirect booking ──
+    async function addComboToCart(combo) {
+        if (YCI.isAdminUser()) {
+            YCI.toast("Tài khoản quản trị không thể đặt thuê.", "error");
+            return;
+        }
+        const user = window.YCI_SESSION?.user;
+        if (!user) {
+            YCI.toast("Vui lòng đăng nhập để đặt combo.", "error");
+            setTimeout(() => { window.location.href = "/login"; }, 1200);
+            return;
+        }
+        const productIds = (combo.products || []).map(p => p.idProduct).filter(Boolean);
+        if (!productIds.length) {
+            YCI.toast("Combo chưa có sản phẩm.", "error");
+            return;
+        }
+        // Thêm tất cả sản phẩm vào cart
+        await YCI.loadCart(true);
+        const existing = YCI.readCart();
+        const merged = Array.from(new Set([...existing, ...productIds.map(Number)]));
+        await YCI.writeCart(merged);
+        // Lưu flag để booking page biết đây là đặt combo (force daily mode)
+        try {
+            sessionStorage.setItem("yci.combo-booking", JSON.stringify({
+                idCombo: combo.idCombo,
+                nameCombo: combo.nameCombo,
+                discountPrice: combo.discountPrice
+            }));
+        } catch (e) {}
+        YCI.toast(`Đã thêm ${productIds.length} thiết bị vào giỏ. Đang chuyển đến đặt lịch...`, "success");
+        setTimeout(() => { window.location.href = "/booking"; }, 900);
+    }
+
+    function bootComboDetail() {
+        const root = YCI.qs("[data-combo-id]");
+        const id = root?.dataset.comboId;
+        if (!id) return;
+
+        YCI.apiGet(`/api/combo/${id}`)
+            .then((response) => {
+                const combo = YCI.unwrapData ? YCI.unwrapData(response) : (response.data || response);
+                if (!combo) { YCI.toast("Không tìm thấy combo", "error"); return; }
+
+                // Helper ảnh base64
+                function imgSrc(b64) {
+                    if (!b64) return YCI.FALLBACK_IMAGE;
+                    return b64.startsWith("data:") ? b64 : "data:image/jpeg;base64," + b64;
+                }
+
+                // Breadcrumb + tiêu đề
+                YCI.qs("[data-combo-crumb]").textContent = combo.nameCombo || "Chi tiết combo";
+                YCI.qs("[data-combo-name]").textContent = combo.nameCombo || "";
+                const descEl = YCI.qs("[data-combo-description]");
+                if (combo.description) {
+                    // Render HTML từ Quill (rich text)
+                    descEl.innerHTML = combo.description;
+                    descEl.classList.add("combo-rich-desc");
+                } else {
+                    descEl.hidden = true;
+                }
+
+                // Ảnh combo
+                const images = (combo.imageDTOS || []).map(img => imgSrc(img.imageBase64));
+                const mainImg = YCI.qs("[data-combo-main-img]");
+                if (images.length) {
+                    mainImg.src = images[0];
+                    mainImg.alt = combo.nameCombo || "Combo";
+                    mainImg.onerror = () => { mainImg.src = YCI.FALLBACK_IMAGE; };
+                    // Thumbnails
+                    const thumbsEl = YCI.qs("[data-combo-thumbs]");
+                    if (images.length > 1) {
+                        thumbsEl.innerHTML = images.map((url, i) => `
+                            <button class="${i === 0 ? "is-active" : ""}" type="button" data-thumb-index="${i}">
+                                <img src="${url}" alt="Ảnh ${i + 1}">
+                            </button>`).join("");
+                        thumbsEl.addEventListener("click", (e) => {
+                            const btn = e.target.closest("[data-thumb-index]");
+                            if (!btn) return;
+                            mainImg.src = images[Number(btn.dataset.thumbIndex)];
+                            thumbsEl.querySelectorAll("[data-thumb-index]").forEach(b =>
+                                b.classList.toggle("is-active", b === btn));
+                        });
+                    } else {
+                        thumbsEl.hidden = true;
+                    }
+                } else {
+                    mainImg.src = YCI.FALLBACK_IMAGE;
+                    YCI.qs("[data-combo-thumbs]").hidden = true;
+                }
+
+                // Giá
+                const origPerDay = combo.totalPricePerDay || 0;
+                const dealPerDay = combo.discountPrice || 0;
+                const saving = origPerDay > 0 ? origPerDay - dealPerDay : 0;
+                const savingPct = origPerDay > 0 ? Math.round((saving / origPerDay) * 100) : 0;
+
+                YCI.qs("[data-combo-orig-price]").textContent = origPerDay > 0 ? YCI.money(origPerDay) + "/ngày" : "—";
+                YCI.qs("[data-combo-deal-price]").textContent = dealPerDay > 0 ? YCI.money(dealPerDay) : "Liên hệ";
+
+                const savingEl = YCI.qs("[data-combo-saving]");
+                if (saving > 0) {
+                    savingEl.hidden = false;
+                    YCI.qs("[data-combo-saving-text]").textContent =
+                        `Tiết kiệm ${YCI.money(saving)}/ngày (${savingPct}%) so với thuê lẻ từng thiết bị`;
+                }
+
+                // Danh sách sản phẩm trong combo
+                const products = combo.products || [];
+                const countEl = YCI.qs("[data-combo-items-count]");
+                if (countEl) countEl.textContent = `${products.length} thiết bị`;
+
+                const grid = YCI.qs("[data-combo-items-grid]");
+                if (products.length) {
+                    grid.innerHTML = products.map(p => {
+                        const thumb = p.thumbnailBase64 ? imgSrc(p.thumbnailBase64) : YCI.FALLBACK_IMAGE;
+                        const dayPrice = p.pricePerDay ? `<span class="price-chip">${YCI.money(p.pricePerDay)}/ngày</span>` : "";
+                        return `
+                            <a class="combo-item-card" href="/products/${p.idProduct}">
+                                <div class="combo-item-media">
+                                    <img src="${thumb}" alt="${YCI.escapeHtml(p.nameProduct)}"
+                                         onerror="this.src='${YCI.FALLBACK_IMAGE}'">
+                                </div>
+                                <div class="combo-item-body">
+                                    <h4>${YCI.escapeHtml(p.nameProduct)}</h4>
+                                    <p class="muted">${YCI.escapeHtml(p.brand || "")} · ${YCI.escapeHtml(p.categoryName || "")}</p>
+                                    <div class="combo-item-price">${dayPrice}</div>
+                                </div>
+                                <i data-lucide="arrow-right" class="combo-item-arrow"></i>
+                            </a>`;
+                    }).join("");
+                } else {
+                    grid.innerHTML = `<p class="muted">Chưa có sản phẩm trong combo này.</p>`;
+                }
+
+                // ── CTA đặt combo ────────────────────────────────────
+                const ctaBtn = YCI.qs(".combo-detail-cta");
+                if (ctaBtn) {
+                    if (combo.comboStatus === "RENTING" || combo.comboStatus === "UNAVAILABLE") {
+                        // Thay CTA bằng badge trạng thái
+                        ctaBtn.outerHTML = `
+                            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;
+                                 border-radius:12px;background:var(--bg-muted);border:1px solid var(--border-color);">
+                                <span class="status-pill ${YCI.statusClass(combo.comboStatus)}">${YCI.statusLabel(combo.comboStatus)}</span>
+                                <span style="font-size:13px;color:var(--text-muted);">
+                                    ${combo.comboStatus === "RENTING"
+                                        ? "Combo hiện đang được thuê. Vui lòng quay lại sau."
+                                        : "Combo hiện không khả dụng."}
+                                </span>
+                            </div>`;
+                    } else {
+                        ctaBtn.removeAttribute("href");
+                        ctaBtn.setAttribute("type", "button");
+                        ctaBtn.addEventListener("click", () => addComboToCart(combo));
+                    }
+                }
+
+                // Hiển thị trạng thái combo ở panel giá
+                if (combo.comboStatus && combo.comboStatus !== "AVAILABLE") {
+                    const pricePanel = YCI.qs(".combo-detail-price-panel");
+                    if (pricePanel) {
+                        const statusEl = document.createElement("div");
+                        statusEl.style.cssText = "display:flex;align-items:center;gap:8px;";
+                        statusEl.innerHTML = `
+                            <span class="status-pill ${YCI.statusClass(combo.comboStatus)}">${YCI.statusLabel(combo.comboStatus)}</span>
+                            <span style="font-size:12px;color:var(--text-muted);">Trạng thái combo</span>`;
+                        pricePanel.prepend(statusEl);
+                    }
+                }
+
+                YCI.iconRefresh();
+            })
+            .catch((err) => YCI.toast(err.message, "error"));
+    }
+
+    function bootCatalogCombos() {
+        const grid  = document.getElementById("comboCatalogGrid");
+        const empty = document.getElementById("comboCatalogEmpty");
+        const searchEl = document.getElementById("comboSearchInput");
+        let allCombos = [];
+
+        function renderCombos(list) {
+            if (!list.length) { grid.innerHTML = ""; empty.hidden = false; return; }
+            empty.hidden = true;
+            grid.innerHTML = list.map(combo => {
+                const thumb = combo.imageDTOS?.[0]?.imageBase64
+                    ? (combo.imageDTOS[0].imageBase64.startsWith("data:") ? combo.imageDTOS[0].imageBase64 : "data:image/jpeg;base64," + combo.imageDTOS[0].imageBase64)
+                    : null;
+                const origPerDay = combo.totalPricePerDay || 0;
+                const dealPerDay = combo.discountPrice || 0;
+                const saving = origPerDay > 0 ? origPerDay - dealPerDay : 0;
+                const savingPct = origPerDay > 0 ? Math.round((saving / origPerDay) * 100) : 0;
+                const badgeText = savingPct > 0 ? `Tiết kiệm ${savingPct}%` : "Combo ưu đãi";
+                const productNames = (combo.products || []).map(p => YCI.escapeHtml(p.nameProduct)).join(" · ");
+                const isUnavailable = combo.comboStatus === "RENTING" || combo.comboStatus === "UNAVAILABLE";
+                const statusPill = combo.comboStatus && combo.comboStatus !== "AVAILABLE"
+                    ? `<span class="status-pill ${YCI.statusClass(combo.comboStatus)}" style="position:absolute;top:14px;right:14px;z-index:2;">${YCI.escapeHtml(YCI.statusLabel(combo.comboStatus))}</span>`
+                    : "";
+                return `
+                    <article class="combo-home-card combo-catalog-card">
+                        <div class="combo-home-badge"><i data-lucide="tag"></i> ${badgeText}</div>
+                        ${statusPill}
+                        <a class="combo-home-media ${thumb ? "" : "is-placeholder"}" href="/combos/${combo.idCombo}">
+                            ${thumb ? `<img src="${thumb}" alt="${YCI.escapeHtml(combo.nameCombo)}">` : `<div class="combo-home-media-ph"><i data-lucide="package"></i></div>`}
+                        </a>
+                        <div class="combo-home-body">
+                            <h3><a href="/combos/${combo.idCombo}">${YCI.escapeHtml(combo.nameCombo)}</a></h3>
+                            <div class="combo-home-items"><i data-lucide="layers"></i><span>${productNames || "Xem chi tiết"}</span></div>
+                            <div class="combo-home-price">
+                                ${origPerDay > 0 ? `<s class="combo-home-orig">${YCI.money(origPerDay)}</s>` : ""}
+                                <div><strong class="combo-home-deal">${YCI.money(dealPerDay)}</strong><span class="combo-home-unit">/ngày</span></div>
+                            </div>
+                            ${isUnavailable
+                                ? `<button class="button full" disabled style="opacity:.55;cursor:not-allowed;border-radius:12px;"><i data-lucide="clock"></i> ${YCI.statusLabel(combo.comboStatus)}</button>`
+                                : `<a class="button primary full combo-home-cta" href="/combos/${combo.idCombo}" data-combo-id="${combo.idCombo}"><i data-lucide="calendar-plus"></i> Đặt combo này</a>`
+                            }
+                        </div>
+                    </article>`;
+            }).join("");
+
+            // Gắn event đặt combo
+            grid.querySelectorAll("[data-combo-id]").forEach(btn => {
+                btn.addEventListener("click", async e => {
+                    e.preventDefault();
+                    const c = allCombos.find(x => x.idCombo === Number(btn.dataset.comboId));
+                    if (!c) return;
+                    if (c.comboStatus === "RENTING" || c.comboStatus === "UNAVAILABLE") {
+                        YCI.toast("Combo này hiện đang được thuê hoặc không khả dụng.", "error");
+                        return;
+                    }
+                    await addComboToCart(c);
+                });
+            });
+            YCI.iconRefresh();
+        }
+
+        searchEl?.addEventListener("input", () => {
+            const q = searchEl.value.trim().toLowerCase();
+            renderCombos(q ? allCombos.filter(c => (c.nameCombo || "").toLowerCase().includes(q)) : allCombos);
+        });
+
+        YCI.apiGet("/api/combo")
+            .then(resp => {
+                allCombos = YCI.unwrapList(resp).filter(c => c.active);
+                renderCombos(allCombos);
+            })
+            .catch(err => YCI.toast(err.message, "error"));
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         const page = document.body.dataset.page;
         if (page === "home") bootHome();
         if (page === "catalog") bootCatalog();
+        if (page === "catalog-combos") bootCatalogCombos();
         if (page === "product-detail") bootProductDetail();
+        if (page === "combo-detail") bootComboDetail();
         if (page === "pricing") bootPricing();
         if (page === "regulations") bootRegulations();
         if (page === "booking") bootBooking();

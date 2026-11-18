@@ -25,7 +25,7 @@
                     <h3>Từng khung hình đều<br>kể một câu chuyện</h3>
                     <p>Thuê máy ảnh, ống kính, đèn flash từ YCI — thiết bị được kiểm tra kỹ, lịch trống rõ ràng, quy trình gọn gàng.</p>
                     <div class="gallery-slide-actions">
-                        <a class="button primary" href="/products"><i data-lucide="camera"></i> Xem thiết bị</a>
+                        <a class="button primary" href="/products/cameras"><i data-lucide="camera"></i> Xem máy ảnh</a>
                         <a class="button hero-ghost" href="/booking">Đặt lịch ngay <i data-lucide="arrow-right"></i></a>
                     </div>
                     <div class="gallery-slide-stats">
@@ -44,7 +44,7 @@
                     <h3>Ánh sáng đúng lúc,<br>khoảnh khắc đúng thời điểm</h3>
                     <p>Mỗi chiếc máy tại YCI đã qua tay những tay máy thực thụ — và giờ đây, lịch chụp tiếp theo là của bạn.</p>
                     <div class="gallery-slide-actions">
-                        <a class="button primary" href="/products"><i data-lucide="camera"></i> Xem thiết bị</a>
+                        <a class="button primary" href="/products/cameras"><i data-lucide="camera"></i> Xem thiết bị</a>
                         <a class="button hero-ghost" href="/pricing">Bảng giá <i data-lucide="arrow-right"></i></a>
                     </div>
                 </div>
@@ -69,7 +69,7 @@
                     <p>Bộ sưu tập máy ảnh fullframe và ống kính cao cấp — tất cả đã được kiểm tra kỹ trước khi đến tay bạn.</p>
                     <div class="gallery-slide-actions">
                         <a class="button primary" href="/products"><i data-lucide="camera"></i> Khám phá ngay</a>
-                        <a class="button hero-ghost" href="/regulations">Quy định thuê <i data-lucide="arrow-right"></i></a>
+                        <a class="button hero-ghost" href="/products/cameras">Máy ảnh fullframe <i data-lucide="arrow-right"></i></a>
                     </div>
                 </div>
             </div>
@@ -118,9 +118,27 @@
                     <p class="eyebrow">Danh mục</p>
                     <h2>Chọn nhanh theo nhu cầu</h2>
                 </div>
-                <a class="link-arrow" th:href="@{/products}">Xem tất cả <i data-lucide="arrow-right"></i></a>
-            </div>
+                <a class="link-arrow" th:href="@{/products}">Xem tất cả <i data-lucide="arrow-right"></i></a>            </div>
             <div class="category-strip" data-category-strip></div>
+        </div>
+    </section>
+
+    <!-- ══════════════════════════════════════════════════════
+         COMBO ƯU ĐÃI
+    ══════════════════════════════════════════════════════ -->
+    <section class="home-section home-combo-section" id="combos">
+        <div class="container">
+            <div class="home-section-head" data-anim="fade-up">
+                <div>
+                    <p class="eyebrow" style="color:#e91e83;">Gói combo tiết kiệm</p>
+                    <h2>Thuê trọn bộ — giá tốt hơn lẻ</h2>
+                    <p style="color:var(--text-muted);font-size:14px;margin-top:4px;">Combo đã bao gồm đầy đủ thiết bị cho một buổi chụp hoàn chỉnh.</p>
+                </div>
+                <a class="link-arrow" th:href="@{/products/combos}">Xem tất cả combo <i data-lucide="arrow-right"></i></a>
+            </div>
+            <div class="combo-home-grid" data-combo-home-grid>
+                <!-- Render bởi JS -->
+            </div>
         </div>
     </section>
 
@@ -134,7 +152,7 @@
                     <p class="eyebrow">Thiết bị nổi bật</p>
                     <h2>Sẵn sàng cho lịch chụp của bạn</h2>
                 </div>
-                <a class="link-arrow" th:href="@{/pricing}">Bảng giá <i data-lucide="arrow-right"></i></a>
+                <a class="link-arrow" th:href="@{/products}">Xem tất cả thiết bị <i data-lucide="arrow-right"></i></a>
             </div>
             <div class="product-grid" data-featured-products></div>
         </div>
@@ -230,7 +248,7 @@
                     <i data-lucide="calendar-plus"></i> Đặt lịch thuê
                 </a>
                 <a class="button cta-ghost" th:href="@{/products}">
-                    Xem thiết bị <i data-lucide="arrow-right"></i>
+                    Xem tất cả thiết bị <i data-lucide="arrow-right"></i>
                 </a>
             </div>
         </div>

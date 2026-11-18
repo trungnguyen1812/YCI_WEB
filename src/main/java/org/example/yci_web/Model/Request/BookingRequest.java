@@ -26,4 +26,6 @@ public class BookingRequest {
     private Double totalAmount;
     private Long idRentalType;
     private List<Long> productIds;
+    /** Giá combo/ngày — nếu có, backend dùng giá này thay vì tính lẻ từng sản phẩm */
+    private Double comboPrice;
 }

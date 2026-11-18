@@ -463,6 +463,14 @@
 
 .data-table tbody tr:last-child td { border-bottom: none; }
 
+/* Button row trong table cell */
+.button-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: nowrap;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    9. TOOLBAR — Glassy card with search + filters
 ───────────────────────────────────────────────────────────────── */
@@ -501,23 +509,23 @@
     width: 100%;
     padding: 8px 14px 8px 34px;
     min-height: 38px;
-    background: #fff7fb;
-    border: 1px solid rgba(243, 201, 220, 0.8);
-    border-radius: 10px;
+    background: var(--input-bg);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
     font-size: 13px;
-    color: #2d1b26;
+    color: var(--input-color);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     box-shadow: none;
 }
 
 .toolbar-search input[type="search"]:focus {
-    border-color: #e91e83;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.10);
-    background: #fff;
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+    background: var(--input-bg-focus);
 }
 
-.toolbar-search input[type="search"]::placeholder { color: #b09aa8; }
+.toolbar-search input[type="search"]::placeholder { color: var(--input-ph-color); }
 
 /* Legacy search-field — keep working for other pages */
 .search-field {
@@ -527,16 +535,16 @@
     width: 100%;
     padding: 0 14px;
     min-height: 38px;
-    background: #fff7fb;
-    border: 1px solid rgba(243, 201, 220, 0.8);
-    border-radius: 10px;
+    background: var(--input-bg);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
     transition: border-color 0.2s, box-shadow 0.2s;
     cursor: text;
 }
 
 .search-field:focus-within {
-    border-color: #e91e83;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.10);
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
 }
 
 .search-field svg,
@@ -555,21 +563,21 @@
     font-size: 13px;
     width: 100%;
     outline: none;
-    color: #2d1b26;
+    color: var(--input-color);
     min-height: unset;
     box-shadow: none;
 }
 
-.search-field input::placeholder { color: #b09aa8; }
+.search-field input::placeholder { color: var(--input-ph-color); }
 
 .select {
     padding: 7px 12px;
     min-height: 38px;
-    border: 1px solid rgba(243, 201, 220, 0.8);
-    border-radius: 10px;
+    border: var(--input-border);
+    border-radius: var(--input-radius);
     font-size: 13px;
-    background: #fff;
-    color: #2d1b26;
+    background: var(--input-bg);
+    color: var(--input-color);
     cursor: pointer;
     outline: none;
     font-family: inherit;
@@ -578,8 +586,8 @@
 }
 
 .select:focus {
-    border-color: #e91e83;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.10);
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -805,21 +813,21 @@
 .inline-form textarea {
     flex: 1;
     min-width: 80px;
-    padding: 9px 12px;
-    border: 1.5px solid rgba(243, 201, 220, 0.8);
-    border-radius: 9px;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
     font-size: 13px;
-    background: #fff7fb;
-    color: #2d1b26;
+    background: var(--input-bg);
+    color: var(--input-color);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .inline-form input:focus,
 .inline-form textarea:focus {
-    border-color: #e91e83;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.09);
+    border-color: var(--input-focus-border);
+    background: var(--input-bg-focus);
+    box-shadow: var(--input-focus-shadow);
 }
 
 .inline-form.tall textarea {
@@ -851,21 +859,21 @@
 .admin-content .form-grid input,
 .admin-content .form-grid textarea,
 .admin-content .form-grid select {
-    padding: 10px 13px;
-    border: 1.5px solid rgba(243, 201, 220, 0.8);
-    border-radius: 9px;
-    background: #fff7fb;
-    color: #2d1b26;
-    font-size: 14px;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    background: var(--input-bg);
+    color: var(--input-color);
+    font-size: var(--input-font);
     transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 .admin-content .form-grid input:focus,
 .admin-content .form-grid textarea:focus,
 .admin-content .form-grid select:focus {
-    border-color: #e91e83;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.09);
+    border-color: var(--input-focus-border);
+    background: var(--input-bg-focus);
+    box-shadow: var(--input-focus-shadow);
     outline: none;
 }
 
@@ -1620,12 +1628,12 @@ body.bmodal-open { overflow: hidden; }
 .bmodal-label input,
 .bmodal-label select,
 .bmodal-label textarea {
-    padding: 9px 12px;
-    border: 1.5px solid rgba(243, 201, 220, 0.8);
-    border-radius: 8px;
-    font-size: 13px;
-    background: #fff;
-    color: #2d1b26;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--input-font);
+    background: var(--input-bg);
+    color: var(--input-color);
     outline: none;
     font-family: inherit;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -1634,8 +1642,9 @@ body.bmodal-open { overflow: hidden; }
 .bmodal-label input:focus,
 .bmodal-label select:focus,
 .bmodal-label textarea:focus {
-    border-color: #e91e83;
-    box-shadow: 0 0 0 3px rgba(233, 30, 131, 0.09);
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+    background: var(--input-bg-focus);
 }
 
 .bmodal-label textarea { resize: vertical; min-height: 68px; }
@@ -1979,12 +1988,12 @@ body.bmodal-open { overflow: hidden; }
 .pform-field input,
 .pform-field select,
 .pform-field textarea {
-    padding: 9px 12px;
-    border: 1.5px solid rgba(243,201,220,.8);
-    border-radius: 9px;
-    font-size: 14px;
-    background: #fff7fb;
-    color: #2d1b26;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--input-font);
+    background: var(--input-bg);
+    color: var(--input-color);
     outline: none;
     font-family: inherit;
     transition: border-color .2s, box-shadow .2s, background .2s;
@@ -1996,9 +2005,9 @@ body.bmodal-open { overflow: hidden; }
 .pform-field input:focus,
 .pform-field select:focus,
 .pform-field textarea:focus {
-    border-color: #e91e83;
-    background: #fff;
-    box-shadow: 0 0 0 3px rgba(233,30,131,.09);
+    border-color: var(--input-focus-border);
+    background: var(--input-bg-focus);
+    box-shadow: var(--input-focus-shadow);
 }
 
 /* Price box */
@@ -2023,12 +2032,12 @@ body.bmodal-open { overflow: hidden; }
 .pmodal-price-label svg { width: 15px; height: 15px; color: #e91e83; }
 
 .pmodal-price-box input {
-    padding: 10px 14px;
-    border: 1.5px solid rgba(243,201,220,.8);
-    border-radius: 9px;
-    font-size: 14px;
-    background: #fff;
-    color: #2d1b26;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--input-font);
+    background: var(--input-bg);
+    color: var(--input-color);
     outline: none;
     width: 100%;
     font-family: inherit;
@@ -2036,8 +2045,9 @@ body.bmodal-open { overflow: hidden; }
 }
 
 .pmodal-price-box input:focus {
-    border-color: #e91e83;
-    box-shadow: 0 0 0 3px rgba(233,30,131,.09);
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+    background: var(--input-bg-focus);
 }
 
 /* Edit price rows */
@@ -2055,19 +2065,23 @@ body.bmodal-open { overflow: hidden; }
 }
 
 .pmodal-price-row input {
-    padding: 8px 11px;
-    border: 1.5px solid rgba(243,201,220,.8);
-    border-radius: 8px;
-    font-size: 14px;
-    background: #fff;
-    color: #2d1b26;
+    padding: var(--input-padding);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    font-size: var(--input-font);
+    background: var(--input-bg);
+    color: var(--input-color);
     outline: none;
     font-family: inherit;
     width: 100%;
-    transition: border-color .2s;
+    transition: border-color .2s, box-shadow .2s;
 }
 
-.pmodal-price-row input:focus { border-color: #e91e83; }
+.pmodal-price-row input:focus {
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+    background: var(--input-bg-focus);
+}
 
 /* Upload zone */
 .pmodal-upload-zone {
@@ -2532,16 +2546,68 @@ body.bmodal-open { overflow: hidden; }
 /* Preview grid ảnh upload trong modal thêm/sửa thiết bị */
 .product-image-preview {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 8px;
     margin-top: 10px;
 }
-.product-image-preview img {
-    width: 100%;
+
+.product-image-preview-item {
+    position: relative;
+    margin: 0;
+    border-radius: 10px;
+    overflow: hidden;
     aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 8px;
+    background: #f4f5f7;
     border: 1.5px solid rgba(243,201,220,.6);
+}
+
+.product-image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Nút X xóa ảnh — góc trên phải, nhỏ gọn */
+.image-preview-remove {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background .15s;
+    z-index: 2;
+}
+.image-preview-remove:hover { background: rgba(189,31,84,.9); }
+.image-preview-remove i[data-lucide] { width: 11px; height: 11px; pointer-events: none; }
+
+/* Badge "Đã lưu" / "Ảnh mới" */
+.image-preview-badge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 3px 0;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    background: rgba(0,0,0,.45);
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    line-height: 1;
+}
+.product-image-preview-item.is-new .image-preview-badge {
+    background: rgba(233,30,131,.75);
 }
 
 /* Notif spinner */
@@ -2556,3 +2622,252 @@ body.bmodal-open { overflow: hidden; }
     vertical-align: middle;
 }
 @keyframes notifSpin { to { transform: rotate(360deg); } }
+
+/* ─────────────────────────────────────────────────────────────────
+   COMBO — Admin page styles
+───────────────────────────────────────────────────────────────── */
+
+/* Product search trong modal combo */
+.combo-product-search-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px;
+    min-height: 38px;
+    background: var(--input-bg);
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    transition: border-color .18s, box-shadow .18s;
+    margin-bottom: 8px;
+}
+.combo-product-search-wrap:focus-within {
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+}
+.combo-product-search-wrap i[data-lucide] { width: 14px; height: 14px; color: var(--text-muted); flex-shrink: 0; }
+.combo-product-search-wrap input {
+    border: none; background: none; outline: none;
+    width: 100%; font-size: 13px; padding: 8px 0;
+    color: var(--input-color);
+}
+.combo-product-search-wrap input::placeholder { color: var(--input-ph-color); }
+
+/* Dropdown gợi ý sản phẩm */
+.combo-product-dropdown {
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.10);
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: 10px;
+    z-index: 10;
+}
+.combo-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background .12s;
+    border-bottom: 1px solid rgba(243,201,220,.3);
+}
+.combo-dropdown-item:last-child { border-bottom: none; }
+.combo-dropdown-item:hover { background: var(--primary-light); }
+.combo-dropdown-item img {
+    width: 36px; height: 36px;
+    object-fit: cover; border-radius: 6px;
+    background: var(--bg-muted); flex-shrink: 0;
+}
+.combo-dropdown-item .combo-di-name { font-weight: 600; color: var(--ink); }
+.combo-dropdown-item .combo-di-meta { font-size: 11px; color: var(--text-muted); }
+.combo-dropdown-item.is-selected { opacity: .45; cursor: not-allowed; pointer-events: none; }
+
+/* Danh sách sản phẩm đã chọn */
+.combo-selected-list {
+    display: grid;
+    gap: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+.combo-empty-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 16px 0;
+    margin: 0;
+}
+.combo-selected-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    font-size: 13px;
+    transition: border-color .15s;
+}
+.combo-selected-item:hover { border-color: rgba(233,30,131,.3); }
+.combo-selected-item img {
+    width: 36px; height: 36px;
+    object-fit: cover; border-radius: 6px;
+    background: #fff; flex-shrink: 0;
+}
+.combo-selected-item-info { flex: 1; min-width: 0; }
+.combo-selected-item-info strong {
+    display: block; font-size: 12px; font-weight: 700;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.combo-selected-item-info span { font-size: 11px; color: var(--text-muted); }
+.combo-selected-item .btn-remove-product {
+    display: inline-grid; place-items: center;
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; background: rgba(189,31,84,.12);
+    color: var(--danger); cursor: pointer; flex-shrink: 0;
+    transition: background .15s;
+}
+.combo-selected-item .btn-remove-product:hover { background: rgba(189,31,84,.25); }
+.combo-selected-item .btn-remove-product i[data-lucide] { width: 11px; height: 11px; }
+
+/* Table row: danh sách sản phẩm trong combo (chip) */
+.combo-product-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+.combo-product-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.combo-product-chip img {
+    width: 16px; height: 16px;
+    object-fit: cover; border-radius: 3px;
+}
+
+/* Toggle hiển thị (tái dùng pattern product toggle) */
+.combo-toggle { display: flex; align-items: center; gap: 7px; }
+.combo-toggle-switch {
+    position: relative; width: 36px; height: 20px; cursor: pointer;
+    display: inline-block;
+}
+.combo-toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.combo-toggle-thumb {
+    position: absolute; inset: 0;
+    background: #d1d5db; border-radius: 10px;
+    transition: background .2s;
+}
+.combo-toggle-thumb::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: #fff; border-radius: 50%;
+    transition: transform .2s;
+}
+.combo-toggle-switch input:checked + .combo-toggle-thumb { background: #e91e83; }
+.combo-toggle-switch input:checked + .combo-toggle-thumb::after { transform: translateX(16px); }
+.combo-toggle-label { font-size: 12px; color: var(--text-muted); min-width: 28px; }
+
+/* Thumbnail trong table */
+.combo-thumb {
+    width: 48px; height: 48px;
+    object-fit: cover; border-radius: 8px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border-color);
+}
+.combo-thumb-placeholder {
+    width: 48px; height: 48px;
+    border-radius: 8px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted);
+}
+.combo-thumb-placeholder i[data-lucide] { width: 18px; height: 18px; }
+
+/* ── Quill Rich Text Editor — Combo modal ─────────────────────────────── */
+
+/* Reset select override của hệ thống cho Quill toolbar */
+.ql-toolbar select,
+.ql-toolbar .ql-picker-label,
+.ql-snow .ql-picker-label {
+    -webkit-appearance: auto !important;
+    appearance: auto !important;
+}
+
+.quill-editor-wrap {
+    border: var(--input-border);
+    border-radius: var(--input-radius);
+    background: var(--input-bg);
+    overflow: hidden;
+    transition: border-color .18s, box-shadow .18s;
+}
+.quill-editor-wrap:focus-within {
+    border-color: var(--input-focus-border);
+    box-shadow: var(--input-focus-shadow);
+}
+
+/* Toolbar */
+.quill-editor-wrap .ql-toolbar {
+    border: none;
+    border-bottom: 1px solid #e5e7eb;
+    background: #fafafa;
+    border-radius: var(--input-radius) var(--input-radius) 0 0;
+    padding: 6px 10px;
+    flex-wrap: wrap;
+    gap: 2px;
+}
+.quill-editor-wrap .ql-toolbar .ql-formats {
+    margin-right: 8px;
+}
+
+/* Editor content area */
+.quill-editor-wrap .ql-container {
+    border: none;
+    font-family: var(--font-main);
+    font-size: 14px;
+    min-height: 120px;
+}
+.quill-editor-wrap .ql-editor {
+    min-height: 120px;
+    padding: 10px 14px;
+    color: var(--input-color);
+    line-height: 1.6;
+}
+.quill-editor-wrap .ql-editor.ql-blank::before {
+    color: var(--input-ph-color);
+    font-style: normal;
+    font-size: 14px;
+}
+
+/* Toolbar buttons hover */
+.quill-editor-wrap .ql-toolbar button:hover,
+.quill-editor-wrap .ql-toolbar button:focus,
+.quill-editor-wrap .ql-toolbar .ql-active {
+    color: #e91e83 !important;
+}
+.quill-editor-wrap .ql-toolbar button:hover .ql-stroke,
+.quill-editor-wrap .ql-toolbar button.ql-active .ql-stroke {
+    stroke: #e91e83 !important;
+}
+.quill-editor-wrap .ql-toolbar button:hover .ql-fill,
+.quill-editor-wrap .ql-toolbar button.ql-active .ql-fill {
+    fill: #e91e83 !important;
+}
+
+/* Color picker dropdown */
+.ql-snow .ql-picker.ql-color-label .ql-stroke.ql-transparent,
+.ql-snow .ql-picker.ql-background .ql-picker-label::before {
+    opacity: .85;
+}

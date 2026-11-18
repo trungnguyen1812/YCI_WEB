@@ -5,16 +5,50 @@
 <header th:replace="~{fragments/layout :: siteHeader}"></header>
 <section th:replace="~{fragments/layout :: flash}"></section>
 
-<main class="page-shell">
-    <section class="page-hero compact">
-        <div>
-            <p class="eyebrow">Quy định</p>
-            <h1>Điều kiện giữ lịch, nhận máy và hoàn trả</h1>
-            <p>Các quy định được quản trị cập nhật để đồng bộ với quy trình tiếp nhận và xử lý đơn thuê.</p>
+<main class="reg-page">
+
+    <!-- Hero banner -->
+    <section class="reg-hero">
+        <div class="reg-hero-inner container">
+            <div class="reg-hero-badge">
+                <i data-lucide="shield-check"></i>
+                <span>Quy định chính thức</span>
+            </div>
+            <h1>Điều khoản &amp; Quy định thuê</h1>
+            <p>Vui lòng đọc kỹ trước khi đặt lịch. Các quy định được cập nhật theo quy trình vận hành thực tế của YCI Camera.</p>
+            <div class="reg-hero-chips">
+                <a href="#rental"   class="reg-chip"><i data-lucide="camera"></i> Thuê thiết bị</a>
+                <a href="#schedule" class="reg-chip"><i data-lucide="calendar-check"></i> Giữ lịch</a>
+                <a href="#pickup"   class="reg-chip"><i data-lucide="package-check"></i> Nhận máy</a>
+                <a href="#return"   class="reg-chip"><i data-lucide="rotate-ccw"></i> Trả máy</a>
+                <a href="#fees"     class="reg-chip"><i data-lucide="wrench"></i> Phát sinh</a>
+                <a href="#payment"  class="reg-chip"><i data-lucide="wallet"></i> Cọc &amp; thanh toán</a>
+            </div>
         </div>
     </section>
 
-    <section class="regulation-board" data-regulation-board></section>
+    <!-- Content -->
+    <div class="container reg-layout">
+
+        <!-- Sidebar nav -->
+        <aside class="reg-nav" aria-label="Mục lục">
+            <p class="reg-nav-title">Mục lục</p>
+            <a class="reg-nav-link" href="#rental"><i data-lucide="camera"></i> Thuê thiết bị</a>
+            <a class="reg-nav-link" href="#schedule"><i data-lucide="calendar-check"></i> Giữ lịch</a>
+            <a class="reg-nav-link" href="#pickup"><i data-lucide="package-check"></i> Nhận máy</a>
+            <a class="reg-nav-link" href="#return"><i data-lucide="rotate-ccw"></i> Trả máy</a>
+            <a class="reg-nav-link" href="#fees"><i data-lucide="wrench"></i> Hư hỏng &amp; phát sinh</a>
+            <a class="reg-nav-link" href="#payment"><i data-lucide="wallet"></i> Cọc &amp; thanh toán</a>
+            <div class="reg-nav-cta">
+                <i data-lucide="info"></i>
+                <p>Thắc mắc? Liên hệ nhân viên qua trang <a th:href="@{/}">chủ</a>.</p>
+            </div>
+        </aside>
+
+        <!-- Rule cards (render bởi JS) -->
+        <section class="reg-board" data-regulation-board></section>
+
+    </div>
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

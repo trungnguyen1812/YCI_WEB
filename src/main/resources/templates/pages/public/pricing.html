@@ -6,38 +6,92 @@
 <section th:replace="~{fragments/layout :: flash}"></section>
 
 <main class="page-shell">
+
+    <!-- Hero -->
     <section class="page-hero compact">
         <div>
             <p class="eyebrow">Bảng giá</p>
-            <h1>Giá thuê theo gói giờ và cọc tham chiếu</h1>
-            <p>Bảng giá lấy trực tiếp từ từng thiết bị; mức cọc thực thu được nhân viên áp dụng khi xác nhận đơn.</p>
+            <h1>Giá thuê thiết bị tại YCI Camera</h1>
+            <p>Giá được cập nhật trực tiếp từ kho thiết bị. Mức cọc thực thu do nhân viên xác nhận khi tạo đơn.</p>
         </div>
     </section>
 
+    <!-- Bảng giá thiết bị -->
     <section class="table-wrap surface pricing-table">
         <table class="data-table">
             <thead>
-            <tr>
-                <th>Thiết bị</th>
-                <th>Danh mục</th>
-                <th>Tình trạng</th>
-                <th>Giá thuê</th>
-                <th>Cọc tham chiếu</th>
-            </tr>
+                <tr>
+                    <th>Thiết bị</th>
+                    <th>Danh mục</th>
+                    <th>Tình trạng</th>
+                    <th>Giá thuê</th>
+                    <th>Cọc tham chiếu</th>
+                </tr>
             </thead>
             <tbody data-pricing-table></tbody>
         </table>
     </section>
 
-    <section class="section no-pad">
-        <div class="section-heading">
-            <div>
-            <p class="eyebrow">Chính sách cọc</p>
-            <h2>Các mức cọc đang áp dụng</h2>
+    <!-- ── Quy trình thuê máy ── -->
+    <section class="pricing-info-section tinted">
+        <div class="pricing-info-head">
+            <p class="eyebrow">Quy trình thuê</p>
+            <h2>Từ đặt lịch đến trả máy</h2>
+            <p>5 bước đơn giản, minh bạch — bạn luôn biết mình đang ở bước nào.</p>
+        </div>
+
+        <div class="pricing-steps">
+            <div class="pricing-step">
+                <div class="pricing-step-num">01</div>
+                <div class="pricing-step-icon"><i data-lucide="search"></i></div>
+                <h3>Chọn thiết bị</h3>
+                <p>Duyệt danh mục, xem giá theo giờ / ngày và chọn thiết bị phù hợp với lịch chụp.</p>
+            </div>
+            <div class="pricing-step-arrow"><i data-lucide="chevron-right"></i></div>
+
+            <div class="pricing-step">
+                <div class="pricing-step-num">02</div>
+                <div class="pricing-step-icon"><i data-lucide="calendar-plus"></i></div>
+                <h3>Đặt lịch</h3>
+                <p>Chọn ngày giờ nhận &amp; trả, hệ thống kiểm tra lịch tự động và gửi yêu cầu cho nhân viên.</p>
+            </div>
+            <div class="pricing-step-arrow"><i data-lucide="chevron-right"></i></div>
+
+            <div class="pricing-step">
+                <div class="pricing-step-num">03</div>
+                <div class="pricing-step-icon"><i data-lucide="shield-check"></i></div>
+                <h3>Xác nhận &amp; cọc</h3>
+                <p>Nhân viên xác nhận đơn, áp dụng mức cọc phù hợp. Khách thanh toán cọc qua QR hoặc tiền mặt.</p>
+            </div>
+            <div class="pricing-step-arrow"><i data-lucide="chevron-right"></i></div>
+
+            <div class="pricing-step">
+                <div class="pricing-step-num">04</div>
+                <div class="pricing-step-icon"><i data-lucide="package-check"></i></div>
+                <h3>Nhận máy</h3>
+                <p>Xuất trình mã QR đơn thuê, cùng nhân viên kiểm tra serial và tình trạng thiết bị trước khi mang đi.</p>
+            </div>
+            <div class="pricing-step-arrow"><i data-lucide="chevron-right"></i></div>
+
+            <div class="pricing-step">
+                <div class="pricing-step-num">05</div>
+                <div class="pricing-step-icon"><i data-lucide="rotate-ccw"></i></div>
+                <h3>Trả máy &amp; tất toán</h3>
+                <p>Trả đúng giờ, nhân viên kiểm tra tình trạng. Nếu không có phát sinh, cọc được đối soát ngay.</p>
             </div>
         </div>
-        <div class="info-grid" data-deposit-types></div>
     </section>
+
+    <!-- ── Quy định thuê từ hệ thống ── -->
+    <section class="pricing-info-section">
+        <div class="pricing-info-head">
+            <p class="eyebrow">Quy định thuê</p>
+            <h2>Điều khoản &amp; quy định</h2>
+            <p>Áp dụng cho toàn bộ đơn thuê tại YCI Camera.</p>
+        </div>
+        <div class="pricing-regulation-grid" data-pricing-regulations></div>
+    </section>
+
 </main>
 
 <footer th:replace="~{fragments/layout :: footer}"></footer>

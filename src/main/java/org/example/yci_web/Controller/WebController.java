@@ -43,9 +43,34 @@ public class WebController {
 
     @GetMapping("/products")
     public String products(Model model) {
-        model.addAttribute("pageTitle", "Thiết bị cho thuê");
+        model.addAttribute("pageTitle", "Tất cả thiết bị");
         model.addAttribute("pageName", "catalog");
+        model.addAttribute("catalogType", "all");
         return "pages/public/catalog";
+    }
+
+    @GetMapping("/products/cameras")
+    public String productsCameras(Model model) {
+        model.addAttribute("pageTitle", "Máy ảnh");
+        model.addAttribute("pageName", "catalog");
+        model.addAttribute("catalogType", "cameras");
+        return "pages/public/catalog";
+    }
+
+    @GetMapping("/products/accessories")
+    public String productsAccessories(Model model) {
+        model.addAttribute("pageTitle", "Phụ kiện");
+        model.addAttribute("pageName", "catalog");
+        model.addAttribute("catalogType", "accessories");
+        return "pages/public/catalog";
+    }
+
+    @GetMapping("/products/combos")
+    public String productsCombos(Model model) {
+        model.addAttribute("pageTitle", "Combo sản phẩm");
+        model.addAttribute("pageName", "catalog-combos");
+        model.addAttribute("catalogType", "combos");
+        return "pages/public/catalog-combos";
     }
 
     @GetMapping("/products/{id}")
@@ -68,6 +93,14 @@ public class WebController {
         model.addAttribute("pageTitle", "Quy định thuê");
         model.addAttribute("pageName", "regulations");
         return "pages/public/regulations";
+    }
+
+    @GetMapping("/combos/{id}")
+    public String comboDetail(@PathVariable Long id, Model model) {
+        model.addAttribute("pageTitle", "Chi tiết combo");
+        model.addAttribute("pageName", "combo-detail");
+        model.addAttribute("comboId", id);
+        return "pages/public/combo-detail";
     }
 
     @GetMapping("/complete-profile")
@@ -326,6 +359,16 @@ public class WebController {
         model.addAttribute("pageTitle", "Hủy đơn & Hoàn tiền");
         model.addAttribute("pageName", "admin-refunds");
         return "pages/admin/refunds";
+    }
+
+    @GetMapping("/admin/combos")
+    public String adminCombos(HttpSession session, RedirectAttributes redirectAttributes, Model model) {        if (!hasAdminAccess(session)) {
+            redirectAttributes.addFlashAttribute("error", "Tài khoản hiện tại không có quyền quản trị.");
+            return "redirect:/profile";
+        }
+        model.addAttribute("pageTitle", "Combo sản phẩm");
+        model.addAttribute("pageName", "admin-combos");
+        return "pages/admin/combos";
     }
 
     private boolean hasStaffAccess(HttpSession session) {

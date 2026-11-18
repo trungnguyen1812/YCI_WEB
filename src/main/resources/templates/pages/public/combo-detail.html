@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body th:attr="data-page=${pageName}">
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+<section th:replace="~{fragments/layout :: flash}"></section>
+
+<main class="page-shell" th:attr="data-combo-id=${comboId}">
+
+    <!-- Breadcrumb -->
+    <nav class="breadcrumb">
+        <a href="/">Trang chủ</a>
+        <i data-lucide="chevron-right"></i>
+        <a href="/#combos">Combo</a>
+        <i data-lucide="chevron-right"></i>
+        <span data-combo-crumb>Chi tiết combo</span>
+    </nav>
+
+    <!-- Layout chính -->
+    <section class="combo-detail-layout">
+
+        <!-- Cột trái: ảnh -->
+        <div class="combo-detail-media surface">
+            <img data-combo-main-img alt="Ảnh combo" src="">
+            <div class="thumbnail-row" data-combo-thumbs></div>
+        </div>
+
+        <!-- Cột phải: thông tin -->
+        <div class="combo-detail-panel">
+            <div class="combo-detail-badge-row">
+                <span class="combo-detail-badge"><i data-lucide="package"></i> Gói combo</span>
+            </div>
+            <h1 data-combo-name>Đang tải...</h1>
+            <p class="lead" data-combo-description></p>
+
+            <!-- Giá -->
+            <div class="surface combo-detail-price-panel">
+                <div class="combo-price-row">
+                    <div>
+                        <p class="combo-price-label">Giá gốc tổng các thiết bị/ngày</p>
+                        <s class="combo-price-orig" data-combo-orig-price>—</s>
+                    </div>
+                    <div class="combo-price-deal-wrap">
+                        <p class="combo-price-label">Giá combo <strong>/ngày</strong></p>
+                        <strong class="combo-price-deal" data-combo-deal-price>—</strong>
+                    </div>
+                </div>
+                <div class="combo-saving-chip" data-combo-saving hidden>
+                    <i data-lucide="trending-down"></i>
+                    <span data-combo-saving-text></span>
+                </div>
+                <p class="combo-price-note">
+                    <i data-lucide="info"></i>
+                    Combo chỉ áp dụng thuê theo <strong>ngày</strong>. Liên hệ nhân viên để xác nhận giá cuối.
+                </p>
+            </div>
+
+            <!-- CTA -->
+            <div class="combo-detail-actions">
+                <a class="button primary full combo-detail-cta" href="/booking">
+                    <i data-lucide="calendar-plus"></i> Đặt combo này
+                </a>
+                <a class="button ghost" href="/#combos">
+                    <i data-lucide="arrow-left"></i> Xem thêm combo
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Danh sách sản phẩm trong combo -->
+    <section class="combo-items-section surface">
+        <div class="section-heading tight">
+            <div>
+                <p class="eyebrow">Bộ thiết bị</p>
+                <h2>Các thiết bị có trong combo</h2>
+            </div>
+            <span class="combo-items-count" data-combo-items-count></span>
+        </div>
+        <div class="combo-items-grid" data-combo-items-grid></div>
+    </section>
+
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

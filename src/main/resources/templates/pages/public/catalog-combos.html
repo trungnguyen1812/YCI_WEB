@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${pageTitle})}"></head>
+<body th:attr="data-page=${pageName}">
+<header th:replace="~{fragments/layout :: siteHeader}"></header>
+<section th:replace="~{fragments/layout :: flash}"></section>
+
+<main class="page-shell">
+    <section class="page-hero compact">
+        <div>
+            <p class="eyebrow">Combo sản phẩm</p>
+            <h1>Thuê trọn bộ — giá tốt hơn lẻ</h1>
+            <p>Các gói combo đã bao gồm đầy đủ thiết bị cho một buổi chụp hoàn chỉnh, giá ưu đãi hơn thuê lẻ.</p>
+        </div>
+        <a class="button primary" th:href="@{/booking}"><i data-lucide="shopping-bag"></i> Đơn thuê</a>
+    </section>
+
+    <!-- Submenu loại thiết bị -->
+    <div class="catalog-type-tabs">
+        <a th:href="@{/products}"><i data-lucide="layout-grid"></i> Tất cả</a>
+        <a th:href="@{/products/cameras}"><i data-lucide="camera"></i> Máy ảnh</a>
+        <a th:href="@{/products/accessories}"><i data-lucide="aperture"></i> Phụ kiện</a>
+        <a th:href="@{/products/combos}" class="is-active"><i data-lucide="package"></i> Combo</a>
+    </div>
+
+    <!-- Search combo -->
+    <div class="catalog-filter-bar surface" style="flex-direction:column;gap:0;">
+        <div class="catalog-search-wrap">
+            <i data-lucide="search" class="catalog-search-icon"></i>
+            <input id="comboSearchInput" type="search" placeholder="Tìm tên combo...">
+        </div>
+    </div>
+
+    <!-- Grid combo -->
+    <section class="combo-catalog-grid" id="comboCatalogGrid">
+        <!-- Render bởi JS -->
+    </section>
+    <div class="empty-state" id="comboCatalogEmpty" hidden>
+        <i data-lucide="package"></i>
+        <h3>Chưa có combo nào</h3>
+        <p>Các gói combo sẽ được hiển thị tại đây khi có sẵn.</p>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+<div th:replace="~{fragments/layout :: scripts}"></div>
+</body>
+</html>

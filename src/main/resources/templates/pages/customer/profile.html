@@ -21,11 +21,11 @@
             <input type="hidden" name="idUser" th:value="${currentUser.idUser}">
             <label>
                 <span>Họ tên</span>
-                <input name="fullName" th:value="${currentUser.fullName}" required>
+                <input name="fullName" type="text" th:value="${currentUser.fullName}" required>
             </label>
             <label>
                 <span>Số điện thoại</span>
-                <input name="phone" th:value="${currentUser.phone}" required>
+                <input name="phone" type="tel" th:value="${currentUser.phone}" required>
             </label>
             <label>
                 <span>Email</span>
@@ -33,7 +33,7 @@
             </label>
             <label class="span-2">
                 <span>Địa chỉ</span>
-                <input name="address" th:value="${currentUser.address}">
+                <input name="address" type="text" th:value="${currentUser.address}">
             </label>
             <button class="button primary span-2" type="submit">Cập nhật hồ sơ</button>
         </form>

@@ -156,9 +156,12 @@ public class BookingServiceImpl implements BookingService {
 
         // Tính số đơn vị thuê (ngày hoặc giờ) từ khoảng thời gian
         long totalMinutes = Duration.between(bookingRequest.getTimeStart(), bookingRequest.getTimeEnd()).toMinutes();
-        double rentalUnitHours = rentalDurationHours(rentalTypeEntity.getType()); // số giờ của 1 đơn vị (VD: 24h = 1 ngày)
+        double rentalUnitHours = rentalDurationHours(rentalTypeEntity.getType());
         double units = (rentalUnitHours > 0) ? Math.ceil((totalMinutes / 60.0) / rentalUnitHours) : 1;
         if (units < 1) units = 1;
+
+        // Kiểm tra xem có giá combo không
+        boolean isCombo = bookingRequest.getComboPrice() != null && bookingRequest.getComboPrice() > 0;
 
         for (Long idProduct : requestedProductIds) {
             BookingDetailEntity bookingDetailEntity = new BookingDetailEntity();
@@ -170,20 +173,34 @@ public class BookingServiceImpl implements BookingService {
                 messageResponse.setStatus(HttpStatus.NOT_FOUND);
                 return messageResponse;
             }
-            RentalPriceEntity rentalPriceEntity = rentalPriceRepository.findByProductEntityAndRentalTypeEntity(productEntity, rentalTypeEntity);
-            if (rentalPriceEntity == null) {
-                messageResponse.setMessage("Thiết bị " + productEntity.getNameProduct() + " chưa có giá thuê cho loại giá đã chọn");
-                messageResponse.setStatus(HttpStatus.BAD_REQUEST);
-                return messageResponse;
+
+            double lineTotal;
+            if (isCombo) {
+                // Combo: ghi nhận 0 cho từng dòng, tổng sẽ set riêng
+                lineTotal = 0;
+            } else {
+                RentalPriceEntity rentalPriceEntity = rentalPriceRepository.findByProductEntityAndRentalTypeEntity(productEntity, rentalTypeEntity);
+                if (rentalPriceEntity == null) {
+                    messageResponse.setMessage("Thiết bị " + productEntity.getNameProduct() + " chưa có giá thuê cho loại giá đã chọn");
+                    messageResponse.setStatus(HttpStatus.BAD_REQUEST);
+                    return messageResponse;
+                }
+                double unitPrice = rentalPriceEntity.getPrice() == null ? 0 : rentalPriceEntity.getPrice();
+                lineTotal = unitPrice * units;
+                totalAmount += lineTotal;
             }
-            double unitPrice = rentalPriceEntity.getPrice() == null ? 0 : rentalPriceEntity.getPrice();
-            double lineTotal = unitPrice * units;
+
             bookingDetailEntity.setBookingEntity(bookingEntity);
             bookingDetailEntity.setProductEntity(productEntity);
             bookingDetailEntity.setTotalPrice(lineTotal);
-            totalAmount += lineTotal;
             bookingDetailEntities.add(bookingDetailEntity);
         }
+
+        // Nếu đặt combo: totalAmount = comboPrice * số ngày
+        if (isCombo) {
+            totalAmount = bookingRequest.getComboPrice() * units;
+        }
+
         bookingEntity.setTotalAmount(totalAmount);
         bookingEntity.setBookingDetailEntities(bookingDetailEntities);
         bookingRepository.save(bookingEntity);
